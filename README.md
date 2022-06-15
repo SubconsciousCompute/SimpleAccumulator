@@ -3,12 +3,14 @@
 Usage: 
 
 ```rust
-use custom_vector::CustomVector;
+use simple_accumulator::SimpleAccumulator;
 
 fn main() {
     let k = [1, 2, 3, 4];
 
-    let mut x = CustomVector::new(&k);
+    // Set field `accumulate` to `false` to not update the field values when
+    // changed, you will need to run `calculate_all` to get updated values.
+    let mut x = SimpleAccumulator::new(&k, true);
 
     println!("{:#?}", x);
     x.push(5);
@@ -17,16 +19,17 @@ fn main() {
 
     x.pop();
     println!("{:#?}", x);
-    
+
     x.remove(2);
     println!("{:#?}", x);
 }
+
 ```
 
 Output:
 
 ```shell
-CustomVector {
+SimpleAccumulator {
     vec: [
         1.0,
         2.0,
@@ -41,7 +44,7 @@ CustomVector {
     median: 2.5,
     len: 4,
 }
-CustomVector {
+SimpleAccumulator {
     vec: [
         1.0,
         2.0,
@@ -57,7 +60,7 @@ CustomVector {
     median: 3.0,
     len: 5,
 }
-CustomVector {
+SimpleAccumulator {
     vec: [
         1.0,
         2.0,
@@ -72,7 +75,7 @@ CustomVector {
     median: 2.5,
     len: 4,
 }
-CustomVector {
+SimpleAccumulator {
     vec: [
         1.0,
         2.0,
@@ -83,7 +86,7 @@ CustomVector {
     standard_deviation: 1.2583057392117916,
     min: 1.0,
     max: 4.0,
-    median: 2.0,
+    median: 2.416666666666667,
     len: 3,
 }
 ```

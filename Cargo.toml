@@ -1,9 +1,25 @@
 [package]
-name = "custom_vector"
+name = "simple_accumulator"
 version = "0.1.0"
 edition = "2021"
+authors = ["sn99 <siddharthn.099@gmail.com>"]
+description = "A simple accumulator"
+repository = "https://github.com/sn99/SimpleAccumulator"
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/sn99/SimpleAccumulator"
+keywords = ["accumulator", "stats"]
+documentation = "https://docs.rs/SimpleAccumulator"
+
+[badges]
+travis-ci = { repository = "sn99/SimpleAccumulator", branch = "master" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 num = "0.4.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3

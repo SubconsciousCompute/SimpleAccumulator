@@ -1,12 +1,33 @@
 //! Store and update stats related to our data array without iterating again and again
-
+//!
+//! ```rust
+//!     let k = [1, 2, 3, 4];
+//!
+//!     let mut x = SimpleAccumulator::new(&k, true);
+//!
+//!     println!("{:#?}", x);
+//!     x.push(5);
+//!
+//!     println!("{:#?}", x);
+//!
+//!     x.pop();
+//!     println!("{:#?}", x);
+//!
+//!     x.remove(2);
+//!     println!("{:#?}", x);
+//! }
+//! ```
+//!
+//! Set field `accumulate` to `false` to not update the value, you will need to run `calculate_all` to
+//! get the updated field values
+#![allow(clippy::clone_double_ref)]
 use num::ToPrimitive;
 use std::cmp::Ordering;
 // use std::collections::HashMap;
 
 /// Our main data struct
 #[derive(Clone, Debug)]
-pub struct CustomVector {
+pub struct SimpleAccumulator {
     pub vec: Vec<f64>,
     pub mean: f64,
     /// Population variance uses `N` NOT `N-1`
@@ -14,22 +35,25 @@ pub struct CustomVector {
     pub standard_deviation: f64,
     pub min: f64,
     pub max: f64,
+    /// We use a rough estimate when using `accumulate=true`
     pub median: f64,
     // mode: f64,
     pub len: usize,
+    /// Flag to set whether the fields update or not after a change
+    pub accumulate: bool,
 }
 
-impl CustomVector {
+impl SimpleAccumulator {
     /// Can be made of any type `&[T]` but will be converted to `Vec<f64>`, panics on values that
     /// cannot be converted
-    pub fn new<T: ToPrimitive>(slice: &[T]) -> Self {
+    pub fn new<T: ToPrimitive>(slice: &[T], flag: bool) -> Self {
         let vec: Vec<f64> = slice
             .clone()
             .iter()
             .map(|x| T::to_f64(x).unwrap())
             .collect();
 
-        let mut k = CustomVector {
+        let mut k = SimpleAccumulator {
             vec,
             mean: 0.0,
             population_variance: 0.0,
@@ -39,6 +63,7 @@ impl CustomVector {
             median: 0.0,
             // mode: 0.0,
             len: 0,
+            accumulate: flag,
         };
 
         if !k.vec.is_empty() {
@@ -54,11 +79,22 @@ impl CustomVector {
         k
     }
 
-    fn calculate_mean(&mut self) {
+    pub fn calculate_all(&mut self) {
+        self.calculate_mean();
+        self.calculate_population_variance();
+        self.calculate_standard_deviation();
+        self.calculate_min();
+        self.calculate_max();
+        self.calculate_median();
+    }
+
+    /// Calculate mena
+    pub fn calculate_mean(&mut self) {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
     }
 
-    fn calculate_population_variance(&mut self) {
+    /// Calculate population variance
+    pub fn calculate_population_variance(&mut self) {
         self.population_variance = self
             .vec
             .iter()
@@ -70,15 +106,18 @@ impl CustomVector {
             / self.len as f64;
     }
 
-    fn calculate_standard_deviation(&mut self) {
+    /// Calculate standard deviation from population variance
+    pub fn calculate_standard_deviation(&mut self) {
         self.standard_deviation = self.population_variance.sqrt();
     }
 
-    fn calculate_min(&mut self) {
+    /// Calculate minimum of values
+    pub fn calculate_min(&mut self) {
         self.min = self.vec.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     }
 
-    fn calculate_max(&mut self) {
+    /// Calculate maximum of values
+    pub fn calculate_max(&mut self) {
         self.max = self.vec.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
     }
 
@@ -86,7 +125,7 @@ impl CustomVector {
     /// only partitions of the data set known to possibly contain the median. This uses cmp and
     /// Ordering to succinctly decide the next median_partition to examine, and split_at to choose an
     /// arbitrary pivot for the next median_partition at each step
-    fn calculate_median(&mut self) {
+    pub fn calculate_median(&mut self) {
         self.median = match self.len {
             even if even % 2 == 0 => {
                 let fst_med = median_select(&self.vec, (even / 2) - 1);
@@ -100,6 +139,11 @@ impl CustomVector {
             odd => median_select(&self.vec, odd / 2).map(|x| x as f64),
         }
         .unwrap();
+    }
+
+    /// rough estimate of median, use `calaculate_median` for exact median
+    pub fn calculate_approx_median(&mut self) {
+        self.median = (self.max + self.min + 2.0 * self.mean) / 4.0;
     }
 
     // Need a better way to find mode
@@ -118,6 +162,17 @@ impl CustomVector {
         self.mode = mode;
     }
     */
+
+    pub fn set_accumulator(&mut self, flag: bool) {
+        if flag {
+            self.calculate_mean();
+            self.calculate_population_variance();
+            self.calculate_standard_deviation();
+            self.calculate_min();
+            self.calculate_max();
+            self.calculate_median();
+        }
+    }
 }
 
 /// Helper for median
@@ -162,28 +217,33 @@ fn median_select(data: &Vec<f64>, k: usize) -> Option<f64> {
     }
 }
 
-impl CustomVector {
+impl SimpleAccumulator {
     /// Same as `push` in `Vec`
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
-        self.update_fields_increase(T::to_f64(&value).unwrap());
         self.vec.push(T::to_f64(&value).unwrap());
-        // TODO: find a better way for this
-        self.calculate_median();
+        if self.accumulate {
+            self.update_fields_increase(T::to_f64(&value).unwrap());
+        }
+        self.len += 1;
     }
 
     /// Same as `remove` in `Vec`
     pub fn remove(&mut self, index: usize) -> f64 {
-        self.update_fields_decrease(self.vec[index]);
+        if self.accumulate {
+            self.update_fields_decrease(self.vec[index]);
+        }
         let k = self.vec.remove(index);
-        if self.min == k {
-            self.calculate_min();
-        }
+        if self.accumulate {
+            if self.min == k {
+                self.calculate_min();
+            }
 
-        if self.max == k {
-            self.calculate_max();
+            if self.max == k {
+                self.calculate_max();
+            }
+            self.calculate_approx_median();
         }
-        // TODO: find a better way for this
-        self.calculate_median();
+        self.len -= 1;
         k
     }
 
@@ -212,7 +272,7 @@ impl CustomVector {
         } else {
             self.max = value;
         }
-        self.len += 1;
+        self.calculate_approx_median();
     }
 
     /// Update fields based on a decrease, no iteration
@@ -225,7 +285,5 @@ impl CustomVector {
             ((self.population_variance * self.len as f64) - iv * iv) / (self.len as f64 - 1.0);
 
         self.standard_deviation = self.population_variance.sqrt();
-
-        self.len -= 1;
     }
 }
