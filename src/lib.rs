@@ -116,7 +116,6 @@ impl SimpleAccumulator {
 
         if !k.vec.is_empty() && flag {
             k.current_write_position = k.vec.len() - 1;
-            k.capacity = k.vec.capacity();
             k.len = k.vec.len();
             k.calculate_all();
             // k.calculate_mode();
@@ -288,28 +287,17 @@ impl SimpleAccumulator {
     }
 
     /// Same as `remove` in `Vec` but returns `None` if index is out of bounds
+    ///
+    /// Always returns `None` when `fixed_capacity: true`
     pub fn remove(&mut self, index: usize) -> Option<f64> {
-        if self.len - 1 < index {
-            return None;
-        }
-        let k = if self.fixed_capacity {
-            // removes the element at the given index and replaces it with last
-            self.vec.swap_remove(index)
+        if self.fixed_capacity {
+            None
         } else {
-            self.vec.remove(index)
-        };
-        if self.accumulate {
-            self.update_fields_decrease(k);
-            self.fields_update_when_removed(k);
-        }
-        self.len -= 1;
-        Some(k)
-    }
+            if self.len - 1 < index {
+                return None;
+            }
 
-    /// Same as `pop` in `Vec`
-    pub fn pop(&mut self) -> Option<f64> {
-        if self.len > 0 {
-            let k = self.vec.pop().unwrap();
+            let k = self.vec.remove(index);
 
             if self.accumulate {
                 self.update_fields_decrease(k);
@@ -317,8 +305,28 @@ impl SimpleAccumulator {
             }
             self.len -= 1;
             Some(k)
-        } else {
+        }
+    }
+
+    /// Same as `pop` in `Vec`
+    ///
+    /// Always returns `None` when `fixed_capacity: true`
+    pub fn pop(&mut self) -> Option<f64> {
+        if self.fixed_capacity {
             None
+        } else {
+            if self.len > 0 {
+                let k = self.vec.pop().unwrap();
+
+                if self.accumulate {
+                    self.update_fields_decrease(k);
+                    self.fields_update_when_removed(k);
+                }
+                self.len -= 1;
+                Some(k)
+            } else {
+                None
+            }
         }
     }
 
