@@ -1,6 +1,6 @@
 [package]
 name = "simple_accumulator"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["sn99 <siddharthn.099@gmail.com>"]
 description = "A simple accumulator"
@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/sn99/SimpleAccumulator"
 keywords = ["accumulator", "stats"]
-documentation = "https://docs.rs/SimpleAccumulator"
+documentation = "https://docs.rs/simple_accumulator"
 
 [badges]
 travis-ci = { repository = "sn99/SimpleAccumulator", branch = "master" }

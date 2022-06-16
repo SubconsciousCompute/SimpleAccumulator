@@ -1,4 +1,13 @@
-# customVector
+#  SimpleAccumulator
+
+[![Build Status](https://app.travis-ci.com/sn99/SimpleAccumulator.svg?branch=master)](https://app.travis-ci.com/sn99/SimpleAccumulator)
+![Crates.io](https://img.shields.io/crates/v/simple_accumulator)
+![Crates.io](https://img.shields.io/crates/d/simple_accumulator)
+
+Store and update stats related to our data array without iterating again and again.
+
+**Note:** We calculate approx median(`(min + max + 2*mean)/4`) as to not iterate again and again but you can set the exact one by using 
+`calculate_median()`.
 
 Usage: 
 
@@ -9,12 +18,12 @@ fn main() {
     let k = [1, 2, 3, 4];
 
     // Set field `accumulate` to `false` to not update the field values when
-    // changed, you will need to run `calculate_all` to get updated values.
+    // changed, you will need to call `calculate_all` to get updated values.
     let mut x = SimpleAccumulator::new(&k, true);
 
     println!("{:#?}", x);
+    
     x.push(5);
-
     println!("{:#?}", x);
 
     x.pop();
@@ -23,7 +32,6 @@ fn main() {
     x.remove(2);
     println!("{:#?}", x);
 }
-
 ```
 
 Output:
@@ -43,6 +51,10 @@ SimpleAccumulator {
     max: 4.0,
     median: 2.5,
     len: 4,
+    capacity: 4,
+    fixed_capacity: false,
+    current_write_position: 0,
+    accumulate: true,
 }
 SimpleAccumulator {
     vec: [
@@ -59,6 +71,10 @@ SimpleAccumulator {
     max: 5.0,
     median: 3.0,
     len: 5,
+    capacity: 8,
+    fixed_capacity: false,
+    current_write_position: 0,
+    accumulate: true,
 }
 SimpleAccumulator {
     vec: [
@@ -74,6 +90,10 @@ SimpleAccumulator {
     max: 4.0,
     median: 2.5,
     len: 4,
+    capacity: 8,
+    fixed_capacity: false,
+    current_write_position: 0,
+    accumulate: true,
 }
 SimpleAccumulator {
     vec: [
@@ -88,5 +108,9 @@ SimpleAccumulator {
     max: 4.0,
     median: 2.416666666666667,
     len: 3,
+    capacity: 8,
+    fixed_capacity: false,
+    current_write_position: 0,
+    accumulate: true,
 }
 ```

@@ -39,6 +39,9 @@ pub struct SimpleAccumulator {
     pub median: f64,
     // mode: f64,
     pub len: usize,
+    capacity: usize,
+    fixed_capacity: bool,
+    current_write_position: usize,
     /// Flag to set whether the fields update or not after a change
     pub accumulate: bool,
 }
@@ -48,6 +51,48 @@ impl SimpleAccumulator {
     /// cannot be converted
     pub fn new<T: ToPrimitive>(slice: &[T], flag: bool) -> Self {
         let vec: Vec<f64> = slice
+            .clone()
+            .iter()
+            .map(|x| T::to_f64(x).expect("Not a number"))
+            .collect();
+
+        let mut k = SimpleAccumulator {
+            vec,
+            mean: 0.0,
+            population_variance: 0.0,
+            standard_deviation: 0.0,
+            min: 0.0,
+            max: 0.0,
+            median: 0.0,
+            // mode: 0.0,
+            len: 0,
+            capacity: 0,
+            fixed_capacity: false,
+            current_write_position: 0,
+            accumulate: flag,
+        };
+
+        if !k.vec.is_empty() && flag {
+            k.len = k.vec.len();
+            k.capacity = k.vec.capacity();
+            k.calculate_all();
+            // k.calculate_mode();
+        }
+        k
+    }
+
+    /// Can be made of any type `&[T]` but will be converted to `Vec<f64>`, panics on values that
+    /// cannot be converted.
+    ///
+    /// Returns `err` if the provided `slice` has greater number of elements than provided `capacity`
+    pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
+        if slice.len() > capacity {
+            panic!("Capacity less than length of given slice");
+        }
+
+        let mut vec: Vec<f64> = Vec::with_capacity(capacity);
+
+        vec = slice
             .clone()
             .iter()
             .map(|x| T::to_f64(x).unwrap())
@@ -63,17 +108,17 @@ impl SimpleAccumulator {
             median: 0.0,
             // mode: 0.0,
             len: 0,
+            capacity,
+            fixed_capacity: true,
+            current_write_position: 0,
             accumulate: flag,
         };
 
-        if !k.vec.is_empty() {
+        if !k.vec.is_empty() && flag {
+            k.current_write_position = k.vec.len() - 1;
+            k.capacity = k.vec.capacity();
             k.len = k.vec.len();
-            k.calculate_mean();
-            k.calculate_population_variance();
-            k.calculate_standard_deviation();
-            k.calculate_min();
-            k.calculate_max();
-            k.calculate_median();
+            k.calculate_all();
             // k.calculate_mode();
         }
         k
@@ -88,7 +133,7 @@ impl SimpleAccumulator {
         self.calculate_median();
     }
 
-    /// Calculate mena
+    /// Calculate mean
     pub fn calculate_mean(&mut self) {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
     }
@@ -146,6 +191,18 @@ impl SimpleAccumulator {
         self.median = (self.max + self.min + 2.0 * self.mean) / 4.0;
     }
 
+    #[inline]
+    fn fields_update_when_removed(&mut self, value: f64) {
+        if self.min == value {
+            self.calculate_min();
+        }
+
+        if self.max == value {
+            self.calculate_max();
+        }
+        self.calculate_approx_median();
+    }
+
     // Need a better way to find mode
     /*
     fn calculate_mode(&mut self){
@@ -162,17 +219,6 @@ impl SimpleAccumulator {
         self.mode = mode;
     }
     */
-
-    pub fn set_accumulator(&mut self, flag: bool) {
-        if flag {
-            self.calculate_mean();
-            self.calculate_population_variance();
-            self.calculate_standard_deviation();
-            self.calculate_min();
-            self.calculate_max();
-            self.calculate_median();
-        }
-    }
 }
 
 /// Helper for median
@@ -220,53 +266,75 @@ fn median_select(data: &Vec<f64>, k: usize) -> Option<f64> {
 impl SimpleAccumulator {
     /// Same as `push` in `Vec`
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
-        self.vec.push(T::to_f64(&value).unwrap());
+        // we just change the already held value and keep on rewriting it
+        if self.fixed_capacity {
+            self.current_write_position = (self.current_write_position + 1) % self.capacity;
+            if self.len < self.capacity {
+                self.vec.push(T::to_f64(&value).unwrap());
+                self.len += 1;
+            } else {
+                self.vec[self.current_write_position] = T::to_f64(&value).unwrap();
+            }
+        // normal push
+        } else {
+            self.vec.push(T::to_f64(&value).unwrap());
+            self.len += 1;
+            self.capacity = self.vec.capacity();
+        }
+
         if self.accumulate {
             self.update_fields_increase(T::to_f64(&value).unwrap());
         }
-        self.len += 1;
     }
 
-    /// Same as `remove` in `Vec`
-    pub fn remove(&mut self, index: usize) -> f64 {
-        if self.accumulate {
-            self.update_fields_decrease(self.vec[index]);
+    /// Same as `remove` in `Vec` but returns `None` if index is out of bounds
+    pub fn remove(&mut self, index: usize) -> Option<f64> {
+        if self.len - 1 < index {
+            return None;
         }
-        let k = self.vec.remove(index);
+        let k = if self.fixed_capacity {
+            // removes the element at the given index and replaces it with last
+            self.vec.swap_remove(index)
+        } else {
+            self.vec.remove(index)
+        };
         if self.accumulate {
-            if self.min == k {
-                self.calculate_min();
-            }
-
-            if self.max == k {
-                self.calculate_max();
-            }
-            self.calculate_approx_median();
+            self.update_fields_decrease(k);
+            self.fields_update_when_removed(k);
         }
         self.len -= 1;
-        k
+        Some(k)
     }
 
     /// Same as `pop` in `Vec`
     pub fn pop(&mut self) -> Option<f64> {
-        if self.len == 0 {
-            None
+        if self.len > 0 {
+            let k = self.vec.pop().unwrap();
+
+            if self.accumulate {
+                self.update_fields_decrease(k);
+                self.fields_update_when_removed(k);
+            }
+            self.len -= 1;
+            Some(k)
         } else {
-            Some(self.remove(self.len - 1))
+            None
         }
     }
 
     /// Update fields based on an increase, no iteration
     fn update_fields_increase(&mut self, value: f64) {
         // mean
-        self.mean = ((self.mean * self.len as f64) + value) / (self.len as f64 + 1.0);
+        self.mean = ((self.mean * (self.len - 1) as f64) + value) / (self.len as f64);
         // population variance
         let iv = value - self.mean;
         self.population_variance =
-            ((self.population_variance * self.len as f64) + iv * iv) / (self.len as f64 + 1.0);
+            ((self.population_variance * (self.len - 1) as f64) + iv * iv) / (self.len as f64);
 
+        // standard deviation
         self.standard_deviation = self.population_variance.sqrt();
 
+        // we can handle these here unlike when we remove elements
         if self.min >= value {
             self.min = value;
         } else {
@@ -283,7 +351,7 @@ impl SimpleAccumulator {
         // population variance
         self.population_variance =
             ((self.population_variance * self.len as f64) - iv * iv) / (self.len as f64 - 1.0);
-
+        // standard deviation
         self.standard_deviation = self.population_variance.sqrt();
     }
 }
