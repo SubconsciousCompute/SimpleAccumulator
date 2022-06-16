@@ -11,9 +11,6 @@ homepage = "https://github.com/sn99/SimpleAccumulator"
 keywords = ["accumulator", "stats"]
 documentation = "https://docs.rs/simple_accumulator"
 
-[badges]
-travis-ci = { repository = "sn99/SimpleAccumulator", branch = "master" }
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

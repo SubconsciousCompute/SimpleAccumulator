@@ -1,8 +1,8 @@
 #  SimpleAccumulator
 
-[![Build Status](https://app.travis-ci.com/sn99/SimpleAccumulator.svg?branch=master)](https://app.travis-ci.com/sn99/SimpleAccumulator)
-![Crates.io](https://img.shields.io/crates/v/simple_accumulator)
-![Crates.io](https://img.shields.io/crates/d/simple_accumulator)
+[![Crates.io](https://img.shields.io/crates/v/simple_accumulator)](https://crates.io/crates/simple_accumulator)
+[![docs.rs](https://img.shields.io/docsrs/simple_accumulator)](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
+[![Crates.io](https://img.shields.io/crates/d/simple_accumulator)](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
 
 Store and update stats related to our data array without iterating again and again.
 
