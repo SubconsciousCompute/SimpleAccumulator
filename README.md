@@ -6,6 +6,8 @@
 
 Store and update stats related to our data array without iterating again and again.
 
+Read [Documentation](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
+
 **Note:** We calculate approx median(`(min + max + 2*mean)/4`) as to not iterate again and again but you can set the exact one by using 
 `calculate_median()`.
 
@@ -53,7 +55,7 @@ SimpleAccumulator {
     len: 4,
     capacity: 4,
     fixed_capacity: false,
-    current_write_position: 0,
+    last_write_position: 0,
     accumulate: true,
 }
 SimpleAccumulator {
@@ -65,15 +67,15 @@ SimpleAccumulator {
         5.0,
     ],
     mean: 3.0,
-    population_variance: 1.8,
-    standard_deviation: 1.3416407864998738,
+    population_variance: 2.0,
+    standard_deviation: 1.4142135623730951,
     min: 1.0,
     max: 5.0,
     median: 3.0,
     len: 5,
     capacity: 8,
     fixed_capacity: false,
-    current_write_position: 0,
+    last_write_position: 0,
     accumulate: true,
 }
 SimpleAccumulator {
@@ -92,7 +94,7 @@ SimpleAccumulator {
     len: 4,
     capacity: 8,
     fixed_capacity: false,
-    current_write_position: 0,
+    last_write_position: 0,
     accumulate: true,
 }
 SimpleAccumulator {
@@ -102,15 +104,15 @@ SimpleAccumulator {
         4.0,
     ],
     mean: 2.3333333333333335,
-    population_variance: 1.5833333333333333,
-    standard_deviation: 1.2583057392117916,
+    population_variance: 1.5555555555555554,
+    standard_deviation: 1.247219128924647,
     min: 1.0,
     max: 4.0,
     median: 2.416666666666667,
     len: 3,
     capacity: 8,
     fixed_capacity: false,
-    current_write_position: 0,
+    last_write_position: 0,
     accumulate: true,
 }
 ```

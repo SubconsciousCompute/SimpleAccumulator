@@ -3,7 +3,7 @@
 //! ```rust
 //!     let k = [1, 2, 3, 4];
 //!
-//!     let mut x = SimpleAccumulator::new(&k, true);
+//!     let mut x = simple_accumulator::SimpleAccumulator::new(&k, true);
 //!
 //!     println!("{:#?}", x);
 //!     x.push(5);
@@ -15,7 +15,6 @@
 //!
 //!     x.remove(2);
 //!     println!("{:#?}", x);
-//! }
 //! ```
 //!
 //! Set field `accumulate` to `false` to not update the value, you will need to run `calculate_all` to
@@ -30,7 +29,7 @@ use std::cmp::Ordering;
 pub struct SimpleAccumulator {
     pub vec: Vec<f64>,
     pub mean: f64,
-    /// Population variance uses `N` NOT `N-1`
+    /// Population variance uses `N` not `N-1`
     pub population_variance: f64,
     pub standard_deviation: f64,
     pub min: f64,
@@ -39,9 +38,10 @@ pub struct SimpleAccumulator {
     pub median: f64,
     // mode: f64,
     pub len: usize,
-    capacity: usize,
-    fixed_capacity: bool,
-    current_write_position: usize,
+    pub capacity: usize,
+    /// Can only `push` if used `pop` and `remove` just return `None`
+    pub fixed_capacity: bool,
+    pub last_write_position: usize,
     /// Flag to set whether the fields update or not after a change
     pub accumulate: bool,
 }
@@ -68,7 +68,7 @@ impl SimpleAccumulator {
             len: 0,
             capacity: 0,
             fixed_capacity: false,
-            current_write_position: 0,
+            last_write_position: 0,
             accumulate: flag,
         };
 
@@ -110,12 +110,12 @@ impl SimpleAccumulator {
             len: 0,
             capacity,
             fixed_capacity: true,
-            current_write_position: 0,
+            last_write_position: 0,
             accumulate: flag,
         };
 
         if !k.vec.is_empty() && flag {
-            k.current_write_position = k.vec.len() - 1;
+            k.last_write_position = k.vec.len() - 1;
             k.len = k.vec.len();
             k.calculate_all();
             // k.calculate_mode();
@@ -267,12 +267,12 @@ impl SimpleAccumulator {
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
-            self.current_write_position = (self.current_write_position + 1) % self.capacity;
+            self.last_write_position = (self.last_write_position + 1) % self.capacity;
             if self.len < self.capacity {
                 self.vec.push(T::to_f64(&value).unwrap());
                 self.len += 1;
             } else {
-                self.vec[self.current_write_position] = T::to_f64(&value).unwrap();
+                self.vec[self.last_write_position] = T::to_f64(&value).unwrap();
             }
         // normal push
         } else {
@@ -314,30 +314,32 @@ impl SimpleAccumulator {
     pub fn pop(&mut self) -> Option<f64> {
         if self.fixed_capacity {
             None
-        } else {
-            if self.len > 0 {
-                let k = self.vec.pop().unwrap();
+        } else if self.len > 0 {
+            let k = self.vec.pop().unwrap();
 
-                if self.accumulate {
-                    self.update_fields_decrease(k);
-                    self.fields_update_when_removed(k);
-                }
-                self.len -= 1;
-                Some(k)
-            } else {
-                None
+            if self.accumulate {
+                self.update_fields_decrease(k);
+                self.fields_update_when_removed(k);
             }
+            self.len -= 1;
+            Some(k)
+        } else {
+            None
         }
     }
 
     /// Update fields based on an increase, no iteration
     fn update_fields_increase(&mut self, value: f64) {
+        let old_mean = self.mean;
         // mean
         self.mean = ((self.mean * (self.len - 1) as f64) + value) / (self.len as f64);
         // population variance
-        let iv = value - self.mean;
-        self.population_variance =
-            ((self.population_variance * (self.len - 1) as f64) + iv * iv) / (self.len as f64);
+        let iv = self.mean - value;
+        let ib = (self.len as f64 - 1.0)
+            * (self.population_variance - (2.0 * self.mean * old_mean)
+                + (old_mean * old_mean)
+                + (self.mean * self.mean));
+        self.population_variance = (ib + (iv * iv)) / (self.len as f64);
 
         // standard deviation
         self.standard_deviation = self.population_variance.sqrt();
@@ -353,13 +355,47 @@ impl SimpleAccumulator {
 
     /// Update fields based on a decrease, no iteration
     fn update_fields_decrease(&mut self, value: f64) {
-        let iv = value - self.mean;
+        let old_mean = self.mean;
         // mean
         self.mean = ((self.mean * self.len as f64) - value) / (self.len as f64 - 1.0);
         // population variance
-        self.population_variance =
-            ((self.population_variance * self.len as f64) - iv * iv) / (self.len as f64 - 1.0);
+        let iv = self.mean - value;
+        let ib = (self.len as f64)
+            * (self.population_variance - (2.0 * self.mean * old_mean)
+                + (old_mean * old_mean)
+                + (self.mean * self.mean));
+        self.population_variance = (ib - (iv * iv)) / (self.len as f64 - 1.0);
         // standard deviation
         self.standard_deviation = self.population_variance.sqrt();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SimpleAccumulator;
+
+    #[test]
+    fn new_no_fixed_capacity() {
+        let k = [1, 2, 3, 4];
+
+        let mut x = SimpleAccumulator::new(&k, true);
+
+        assert_eq!(
+            x,
+            SimpleAccumulator {
+                vec: Vec::from([1.0, 2.0, 3.0, 4.0,]),
+                mean: 2.5,
+                population_variance: 1.25,
+                standard_deviation: 1.118033988749895,
+                min: 1.0,
+                max: 4.0,
+                median: 2.5,
+                len: 4,
+                capacity: 4,
+                fixed_capacity: false,
+                last_write_position: 0,
+                accumulate: true,
+            }
+        );
     }
 }
