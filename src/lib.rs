@@ -19,30 +19,43 @@
 //!
 //! Set field `accumulate` to `false` to not update the value, you will need to run `calculate_all` to
 //! get the updated field values
+//!
+//! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
 #![allow(clippy::clone_double_ref)]
 use num::ToPrimitive;
 use std::cmp::Ordering;
 // use std::collections::HashMap;
 
 /// Our main data struct
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SimpleAccumulator {
+    /// We use Vec to store the data
     pub vec: Vec<f64>,
+    /// Average or mean of all data stored
     pub mean: f64,
     /// Population variance uses `N` not `N-1`
     pub population_variance: f64,
+    /*
+    /// (Standard deviation)^2 = population_variance
     pub standard_deviation: f64,
+    */
+    /// Minimum element in the Accumulator
     pub min: f64,
+    /// Maximum element in the Accumulator
     pub max: f64,
     /// We use a rough estimate when using `accumulate=true`
     pub median: f64,
     // mode: f64,
+    /// Current `length` or number of elements currently stored
     pub len: usize,
+    /// Capacity available before it has to reallocate more, doesn't reallocate more if `with_fixed_capacity`
+    /// is used - instead rewrites previous places in FIFO order
     pub capacity: usize,
     /// Can only `push` if used `pop` and `remove` just return `None`
     pub fixed_capacity: bool,
+    /// Gives an idea about last filled position, doesn't get updated if `accumulate=true`
     pub last_write_position: usize,
-    /// Flag to set whether the fields update or not after a change
+    /// Flag to set whether the fields update or not after a change(push, remove, pop)
     pub accumulate: bool,
 }
 
@@ -60,7 +73,6 @@ impl SimpleAccumulator {
             vec,
             mean: 0.0,
             population_variance: 0.0,
-            standard_deviation: 0.0,
             min: 0.0,
             max: 0.0,
             median: 0.0,
@@ -84,7 +96,7 @@ impl SimpleAccumulator {
     /// Can be made of any type `&[T]` but will be converted to `Vec<f64>`, panics on values that
     /// cannot be converted.
     ///
-    /// Returns `err` if the provided `slice` has greater number of elements than provided `capacity`
+    /// Panics if the provided `slice` has greater number of elements than provided `capacity`
     pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
         if slice.len() > capacity {
             panic!("Capacity less than length of given slice");
@@ -102,7 +114,6 @@ impl SimpleAccumulator {
             vec,
             mean: 0.0,
             population_variance: 0.0,
-            standard_deviation: 0.0,
             min: 0.0,
             max: 0.0,
             median: 0.0,
@@ -151,8 +162,8 @@ impl SimpleAccumulator {
     }
 
     /// Calculate standard deviation from population variance
-    pub fn calculate_standard_deviation(&mut self) {
-        self.standard_deviation = self.population_variance.sqrt();
+    pub fn calculate_standard_deviation(&mut self) -> f64 {
+        self.population_variance.sqrt()
     }
 
     /// Calculate minimum of values
@@ -191,7 +202,9 @@ impl SimpleAccumulator {
     }
 
     #[inline]
-    fn fields_update_when_removed(&mut self, value: f64) {
+    /// Need to calculate mix-max after the value is removed, may or may-not iter depending on value
+    // Maybe store the 2 min-max and just compare and select the 2nd one?
+    fn some_fields_update_when_removed(&mut self, value: f64) {
         if self.min == value {
             self.calculate_min();
         }
@@ -263,26 +276,53 @@ fn median_select(data: &Vec<f64>, k: usize) -> Option<f64> {
 }
 
 impl SimpleAccumulator {
-    /// Same as `push` in `Vec`
+    /// Same as `push` in `Vec`, rewrites in FIFO order if `with_fixed_capacity` is used
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
+        let y = T::to_f64(&value).unwrap();
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
             self.last_write_position = (self.last_write_position + 1) % self.capacity;
             if self.len < self.capacity {
-                self.vec.push(T::to_f64(&value).unwrap());
+                self.vec.push(y);
                 self.len += 1;
+                if self.accumulate {
+                    self.update_fields_increase(y);
+                }
             } else {
-                self.vec[self.last_write_position] = T::to_f64(&value).unwrap();
+                let k = self.vec[self.last_write_position];
+                self.vec[self.last_write_position] = y;
+                // mean
+                let old_mean = self.mean;
+                self.mean = (self.len as f64 * self.mean - k + y) / self.len as f64;
+                // variance
+                self.population_variance = (((self.len as f64)
+                    * (self.population_variance
+                        + (self.mean - old_mean) * (self.mean - old_mean)))
+                    + ((y - k) * (y + k - 2.0 * self.mean)))
+                    / self.len as f64;
+                if y < self.min {
+                    self.min = y;
+                    if k == self.max {
+                        self.calculate_max();
+                    }
+                }
+                if y > self.max {
+                    self.max = y;
+                    if k == self.min {
+                        self.calculate_min();
+                    }
+                }
+                self.calculate_approx_median();
             }
         // normal push
         } else {
-            self.vec.push(T::to_f64(&value).unwrap());
+            self.vec.push(y);
             self.len += 1;
             self.capacity = self.vec.capacity();
-        }
 
-        if self.accumulate {
-            self.update_fields_increase(T::to_f64(&value).unwrap());
+            if self.accumulate {
+                self.update_fields_increase(T::to_f64(&value).unwrap());
+            }
         }
     }
 
@@ -301,7 +341,7 @@ impl SimpleAccumulator {
 
             if self.accumulate {
                 self.update_fields_decrease(k);
-                self.fields_update_when_removed(k);
+                self.some_fields_update_when_removed(k);
             }
             self.len -= 1;
             Some(k)
@@ -319,7 +359,7 @@ impl SimpleAccumulator {
 
             if self.accumulate {
                 self.update_fields_decrease(k);
-                self.fields_update_when_removed(k);
+                self.some_fields_update_when_removed(k);
             }
             self.len -= 1;
             Some(k)
@@ -340,9 +380,6 @@ impl SimpleAccumulator {
                 + (old_mean * old_mean)
                 + (self.mean * self.mean));
         self.population_variance = (ib + (iv * iv)) / (self.len as f64);
-
-        // standard deviation
-        self.standard_deviation = self.population_variance.sqrt();
 
         // we can handle these here unlike when we remove elements
         if self.min >= value {
@@ -365,8 +402,6 @@ impl SimpleAccumulator {
                 + (old_mean * old_mean)
                 + (self.mean * self.mean));
         self.population_variance = (ib - (iv * iv)) / (self.len as f64 - 1.0);
-        // standard deviation
-        self.standard_deviation = self.population_variance.sqrt();
     }
 }
 
@@ -386,7 +421,6 @@ mod tests {
                 vec: Vec::from([1.0, 2.0, 3.0, 4.0,]),
                 mean: 2.5,
                 population_variance: 1.25,
-                standard_deviation: 1.118033988749895,
                 min: 1.0,
                 max: 4.0,
                 median: 2.5,
