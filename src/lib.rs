@@ -41,8 +41,12 @@ pub struct SimpleAccumulator {
     */
     /// Minimum element in the Accumulator
     pub min: f64,
+    /// 2nd lowest value - To help calculate approx min
+    min_: f64,
     /// Maximum element in the Accumulator
     pub max: f64,
+    /// 2nd highest value - To help calculate approx max
+    max_: f64,
     /// We use a rough estimate when using `accumulate=true`
     pub median: f64,
     // mode: f64,
@@ -74,7 +78,9 @@ impl SimpleAccumulator {
             mean: 0.0,
             population_variance: 0.0,
             min: 0.0,
+            min_: f64::INFINITY,
             max: 0.0,
+            max_: f64::NEG_INFINITY,
             median: 0.0,
             // mode: 0.0,
             len: 0,
@@ -115,7 +121,9 @@ impl SimpleAccumulator {
             mean: 0.0,
             population_variance: 0.0,
             min: 0.0,
+            min_: f64::INFINITY,
             max: 0.0,
+            max_: f64::NEG_INFINITY,
             median: 0.0,
             // mode: 0.0,
             len: 0,
@@ -168,12 +176,28 @@ impl SimpleAccumulator {
 
     /// Calculate minimum of values
     pub fn calculate_min(&mut self) {
-        self.min = self.vec.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        self.min = self.vec[0];
+        for k in &self.vec[1..] {
+            if k < &self.min {
+                self.min_ = self.min;
+                self.min = *k;
+            } else if k < &self.min_ {
+                self.min_ = *k;
+            }
+        }
     }
 
     /// Calculate maximum of values
     pub fn calculate_max(&mut self) {
-        self.max = self.vec.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+        self.max = self.vec[0];
+        for k in &self.vec[1..] {
+            if k > &self.max {
+                self.max_ = self.max;
+                self.max = *k;
+            } else if k > &self.max_ {
+                self.max_ = *k;
+            }
+        }
     }
 
     /// We calculate the median using the quickselect algorithm, which avoids a full sort by sorting
@@ -196,21 +220,22 @@ impl SimpleAccumulator {
         .unwrap();
     }
 
-    /// rough estimate of median, use `calaculate_median` for exact median
+    /// rough estimate of median, use `calculate_median` for exact median
     pub fn calculate_approx_median(&mut self) {
         self.median = (self.max + self.min + 2.0 * self.mean) / 4.0;
     }
 
     #[inline]
-    /// Need to calculate mix-max after the value is removed, may or may-not iter depending on value
-    // Maybe store the 2 min-max and just compare and select the 2nd one?
+    /// Need to calculate mix-max after the value is removed, approx min-max
     fn some_fields_update_when_removed(&mut self, value: f64) {
         if self.min == value {
-            self.calculate_min();
+            self.min = self.min_;
+            self.min_ = ((self.len as f64 * self.min) + self.mean) / (self.len as f64 + 1.0);
         }
 
         if self.max == value {
-            self.calculate_max();
+            self.max = self.max_;
+            self.max_ = ((self.len as f64 * self.max) + self.mean) / (self.len as f64 + 1.0);
         }
         self.calculate_approx_median();
     }
@@ -383,8 +408,10 @@ impl SimpleAccumulator {
 
         // we can handle these here unlike when we remove elements
         if self.min >= value {
+            self.min_ = self.min;
             self.min = value;
         } else {
+            self.max_ = self.max;
             self.max = value;
         }
         self.calculate_approx_median();
@@ -422,7 +449,9 @@ mod tests {
                 mean: 2.5,
                 population_variance: 1.25,
                 min: 1.0,
+                min_: 2.0,
                 max: 4.0,
+                max_: 3.0,
                 median: 2.5,
                 len: 4,
                 capacity: 4,
