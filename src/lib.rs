@@ -108,13 +108,13 @@ impl SimpleAccumulator {
             panic!("Capacity less than length of given slice");
         }
 
-        let mut vec: Vec<f64> = Vec::with_capacity(capacity);
-
-        vec = slice
+        let mut vec: Vec<f64> = slice
             .clone()
             .iter()
             .map(|x| T::to_f64(x).unwrap())
             .collect();
+
+        vec.reserve_exact(capacity);
 
         let mut k = SimpleAccumulator {
             vec,
@@ -350,6 +350,15 @@ impl SimpleAccumulator {
             }
         }
     }
+
+
+    // FIXME: This does not compile.
+    // /// Same as 'Vec::append' in spirit except that `other` is not consumed. 
+    // pub fn append<T: ToPrimitive>(&mut self, other: &Vec<T>) {
+    //     for v in values.iter().cloned() {
+    //         self.push(v);
+    //     }
+    // }
 
     /// Same as `remove` in `Vec` but returns `None` if index is out of bounds
     ///
