@@ -108,13 +108,13 @@ impl SimpleAccumulator {
             panic!("Capacity less than length of given slice");
         }
 
-        let mut vec: Vec<f64> = Vec::with_capacity(capacity);
-
-        vec = slice
+        let mut vec: Vec<f64> = slice
             .clone()
             .iter()
             .map(|x| T::to_f64(x).unwrap())
             .collect();
+
+        vec.reserve_exact(capacity);
 
         let mut k = SimpleAccumulator {
             vec,
@@ -304,9 +304,9 @@ impl SimpleAccumulator {
     /// Same as `push` in `Vec`, rewrites in FIFO order if `with_fixed_capacity` is used
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
         let y = T::to_f64(&value).unwrap();
+
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
-            self.last_write_position = (self.last_write_position + 1) % self.capacity;
             if self.len < self.capacity {
                 self.vec.push(y);
                 self.len += 1;
@@ -339,8 +339,9 @@ impl SimpleAccumulator {
                 }
                 self.calculate_approx_median();
             }
-        // normal push
+            self.last_write_position = (self.last_write_position + 1) % self.capacity;
         } else {
+            // normal push
             self.vec.push(y);
             self.len += 1;
             self.capacity = self.vec.capacity();
