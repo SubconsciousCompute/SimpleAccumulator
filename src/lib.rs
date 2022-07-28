@@ -441,8 +441,7 @@ mod tests {
     fn new_no_fixed_capacity() {
         let k = [1, 2, 3, 4];
 
-        let mut x = SimpleAccumulator::new(&k, true);
-
+        let x = SimpleAccumulator::new(&k, true);
         assert_eq!(
             x,
             SimpleAccumulator {
