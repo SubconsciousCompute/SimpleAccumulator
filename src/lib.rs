@@ -352,14 +352,6 @@ impl SimpleAccumulator {
         }
     }
 
-    // FIXME: This does not compile.
-    // /// Same as 'Vec::append' in spirit except that `other` is not consumed.
-    // pub fn append<T: ToPrimitive>(&mut self, other: &Vec<T>) {
-    //     for v in values.iter().cloned() {
-    //         self.push(v);
-    //     }
-    // }
-
     /// Same as `remove` in `Vec` but returns `None` if index is out of bounds
     ///
     /// Always returns `None` when `fixed_capacity: true`
