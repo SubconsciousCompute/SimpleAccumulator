@@ -304,9 +304,9 @@ impl SimpleAccumulator {
     /// Same as `push` in `Vec`, rewrites in FIFO order if `with_fixed_capacity` is used
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
         let y = T::to_f64(&value).unwrap();
+
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
-            self.last_write_position = (self.last_write_position + 1) % self.capacity;
             if self.len < self.capacity {
                 self.vec.push(y);
                 self.len += 1;
@@ -339,8 +339,9 @@ impl SimpleAccumulator {
                 }
                 self.calculate_approx_median();
             }
-        // normal push
+            self.last_write_position = (self.last_write_position + 1) % self.capacity;
         } else {
+            // normal push
             self.vec.push(y);
             self.len += 1;
             self.capacity = self.vec.capacity();
@@ -351,9 +352,8 @@ impl SimpleAccumulator {
         }
     }
 
-
     // FIXME: This does not compile.
-    // /// Same as 'Vec::append' in spirit except that `other` is not consumed. 
+    // /// Same as 'Vec::append' in spirit except that `other` is not consumed.
     // pub fn append<T: ToPrimitive>(&mut self, other: &Vec<T>) {
     //     for v in values.iter().cloned() {
     //         self.push(v);
