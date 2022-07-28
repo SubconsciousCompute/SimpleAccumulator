@@ -36,7 +36,7 @@ fn test_only_n_recent_values() {
     let mut rng = rand::thread_rng();
 
     // fill an array of size 1000 with random numbers.
-    let mut data: Vec<i32> = (&mut rng)
+    let data: Vec<i32> = (&mut rng)
         .sample_iter(Uniform::new(0, 100))
         .take(1000)
         .collect();
