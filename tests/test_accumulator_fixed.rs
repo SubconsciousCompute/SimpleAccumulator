@@ -57,6 +57,7 @@ fn test_only_n_recent_values() {
     let a: HashSet<i32> = acc.vec.iter().map(|&x| x as i32).collect();
     let b: HashSet<i32> = data.into_iter().rev().take(CAPACITY).collect();
     println!("{:?}\n{:?}", a, b);
-    assert!(a.intersection(&b).count() <= CAPACITY); // duplicates doesn't count.
+    assert!(a.len() <= CAPACITY); // duplicates
+    assert_eq!(a.intersection(&b).count(), a.len());
     assert_eq!(a.difference(&b).count(), 0); // both set must be equal.
 }
