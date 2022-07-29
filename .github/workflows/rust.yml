@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "master" ]
     tags:
-      - '*'
+      - 'v*'
   pull_request:
     branches: [ "master" ]
 
@@ -25,8 +25,8 @@ jobs:
 
   upload:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tag/v')
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
