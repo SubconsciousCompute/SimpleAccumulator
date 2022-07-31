@@ -145,7 +145,7 @@ impl SimpleAccumulator {
     pub fn calculate_all(&mut self) {
         self.calculate_mean();
         self.calculate_population_variance();
-        self.calculate_standard_deviation();
+        // self.calculate_standard_deviation();
         self.calculate_min();
         self.calculate_max();
         self.calculate_median();
@@ -349,6 +349,52 @@ impl SimpleAccumulator {
             if self.accumulate {
                 self.update_fields_increase(T::to_f64(&value).unwrap());
             }
+        }
+    }
+
+    /// TODO: overwrite values when using fixed capacity
+    pub fn append<T: ToPrimitive>(&mut self, value: Vec<T>) {
+        // let mut value: Vec<f64> = value.iter().map(|x| T::to_f64(&x).unwrap()).collect();
+        let mut sum = 0.0;
+        let mut sq_sum = 0.0;
+
+        let mut temp_values: Vec<f64> = Vec::with_capacity(value.len());
+
+        for t in value {
+            let k = T::to_f64(&t).unwrap();
+            temp_values.push(k);
+            // to find mean
+            sum += k;
+            // to find variance
+            sq_sum += k * k;
+            // updating min-max values
+            if k > self.max {
+                self.max_ = self.max;
+                self.max = k;
+            } else if k > self.max_ {
+                self.max_ = k;
+            } else if k < self.min {
+                self.min_ = self.min;
+                self.min = k;
+            } else if k < self.min_ {
+                self.min_ = k;
+            }
+        }
+
+        if self.accumulate {
+            let old_mean = self.mean;
+            self.mean = (self.mean * self.len as f64 + sum) / (self.len + temp_values.len()) as f64;
+            let a = self.len as f64 * (self.population_variance + old_mean * old_mean);
+            let b = (-1.0) * (self.mean * self.mean) * (self.len + temp_values.len()) as f64;
+            self.population_variance = (a + sq_sum + b) / (self.len + temp_values.len()) as f64;
+        }
+
+        if self.fixed_capacity {
+        } else {
+            self.len += temp_values.len();
+            self.vec.append(&mut temp_values);
+            self.capacity = self.vec.capacity();
+            self.calculate_approx_median();
         }
     }
 
