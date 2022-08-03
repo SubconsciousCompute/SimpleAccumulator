@@ -151,13 +151,14 @@ impl SimpleAccumulator {
         self.calculate_median();
     }
 
-    /// Calculate mean
-    pub fn calculate_mean(&mut self) {
+    /// Calculate mean and return it
+    pub fn calculate_mean(&mut self) -> f64 {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
+        self.mean
     }
 
-    /// Calculate population variance
-    pub fn calculate_population_variance(&mut self) {
+    /// Calculate population variance and return it
+    pub fn calculate_population_variance(&mut self) -> f64 {
         self.population_variance = self
             .vec
             .iter()
@@ -167,6 +168,8 @@ impl SimpleAccumulator {
             })
             .sum::<f64>()
             / self.len as f64;
+
+        self.population_variance
     }
 
     /// Calculate standard deviation from population variance
@@ -174,8 +177,8 @@ impl SimpleAccumulator {
         self.population_variance.sqrt()
     }
 
-    /// Calculate minimum of values
-    pub fn calculate_min(&mut self) {
+    /// Calculate minimum(s) of values and return min
+    pub fn calculate_min(&mut self) -> f64 {
         self.min = self.vec[0];
         for k in &self.vec[1..] {
             if k < &self.min {
@@ -185,10 +188,11 @@ impl SimpleAccumulator {
                 self.min_ = *k;
             }
         }
+        self.min
     }
 
-    /// Calculate maximum of values
-    pub fn calculate_max(&mut self) {
+    /// Calculate maximum(s) of values and return max
+    pub fn calculate_max(&mut self) -> f64 {
         self.max = self.vec[0];
         for k in &self.vec[1..] {
             if k > &self.max {
@@ -198,13 +202,14 @@ impl SimpleAccumulator {
                 self.max_ = *k;
             }
         }
+        self.max
     }
 
     /// We calculate the median using the quickselect algorithm, which avoids a full sort by sorting
     /// only partitions of the data set known to possibly contain the median. This uses cmp and
     /// Ordering to succinctly decide the next median_partition to examine, and split_at to choose an
     /// arbitrary pivot for the next median_partition at each step
-    pub fn calculate_median(&mut self) {
+    pub fn calculate_median(&mut self) -> f64 {
         self.median = match self.len {
             even if even % 2 == 0 => {
                 let fst_med = median_select(&self.vec, (even / 2) - 1);
@@ -218,6 +223,8 @@ impl SimpleAccumulator {
             odd => median_select(&self.vec, odd / 2).map(|x| x as f64),
         }
         .unwrap();
+
+        self.median
     }
 
     /// rough estimate of median, use `calculate_median` for exact median
@@ -307,6 +314,7 @@ impl SimpleAccumulator {
 
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
+            self.last_write_position = (self.last_write_position + 1) % self.capacity;
             if self.len < self.capacity {
                 self.vec.push(y);
                 self.len += 1;
@@ -325,21 +333,19 @@ impl SimpleAccumulator {
                         + (self.mean - old_mean) * (self.mean - old_mean)))
                     + ((y - k) * (y + k - 2.0 * self.mean)))
                     / self.len as f64;
-                if y < self.min {
-                    self.min = y;
-                    if k == self.max {
-                        self.calculate_max();
-                    }
-                }
                 if y > self.max {
+                    self.max_ = self.max;
                     self.max = y;
-                    if k == self.min {
-                        self.calculate_min();
-                    }
+                } else if y > self.max_ {
+                    self.max_ = y;
+                } else if y < self.min {
+                    self.min_ = self.min;
+                    self.min = y;
+                } else if y < self.min_ {
+                    self.min_ = y;
                 }
                 self.calculate_approx_median();
             }
-            self.last_write_position = (self.last_write_position + 1) % self.capacity;
         } else {
             // normal push
             self.vec.push(y);
@@ -352,21 +358,21 @@ impl SimpleAccumulator {
         }
     }
 
-    /// TODO: overwrite values when using fixed capacity
-    pub fn append<T: ToPrimitive>(&mut self, value: Vec<T>) {
+    /// Similar behaviour to `append` in `Vec`, rewrites in FIFO order if `with_fixed_capacity` is used
+    pub fn append<T: ToPrimitive>(&mut self, value: &Vec<T>) {
         // let mut value: Vec<f64> = value.iter().map(|x| T::to_f64(&x).unwrap()).collect();
         let mut sum = 0.0;
-        let mut sq_sum = 0.0;
+        let mut old_sq_sum = 0.0;
 
         let mut temp_values: Vec<f64> = Vec::with_capacity(value.len());
 
         for t in value {
-            let k = T::to_f64(&t).unwrap();
+            let k = T::to_f64(t).unwrap();
             temp_values.push(k);
             // to find mean
             sum += k;
             // to find variance
-            sq_sum += k * k;
+            old_sq_sum += k * k;
             // updating min-max values
             if k > self.max {
                 self.max_ = self.max;
@@ -381,16 +387,46 @@ impl SimpleAccumulator {
             }
         }
 
+        let old_old_mean = self.mean;
+        let old_variance = self.population_variance;
         if self.accumulate {
-            let old_mean = self.mean;
             self.mean = (self.mean * self.len as f64 + sum) / (self.len + temp_values.len()) as f64;
-            let a = self.len as f64 * (self.population_variance + old_mean * old_mean);
+            let a = self.len as f64 * (self.population_variance + old_old_mean * old_old_mean);
             let b = (-1.0) * (self.mean * self.mean) * (self.len + temp_values.len()) as f64;
-            self.population_variance = (a + sq_sum + b) / (self.len + temp_values.len()) as f64;
+            self.population_variance = (a + old_sq_sum + b) / (self.len + temp_values.len()) as f64;
+            self.calculate_approx_median();
         }
 
         if self.fixed_capacity {
+            if temp_values.len() <= self.capacity - self.len {
+                self.len += temp_values.len();
+                self.vec.append(&mut temp_values);
+                self.calculate_approx_median();
+            } else {
+                let mut start_fill_index = 0;
+                if let Some(i) = temp_values.len().checked_sub(self.len) {
+                    start_fill_index = i;
+                }
+                let mut sum = 0.0;
+                let mut sq_sum = 0.0;
+                for i in temp_values.iter().skip(start_fill_index) {
+                    self.last_write_position = (self.last_write_position + 1) % self.capacity;
+                    sum += self.vec[self.last_write_position];
+                    sq_sum +=
+                        self.vec[self.last_write_position] * self.vec[self.last_write_position];
+                    self.vec[self.last_write_position] = *i;
+                }
+                self.mean =
+                    ((self.mean * (self.len + temp_values.len()) as f64) - sum) / self.len as f64;
+
+                self.population_variance = (self.len as f64
+                    * (old_variance + old_old_mean * old_old_mean)
+                    + (-1.0) * (sq_sum + self.len as f64 * self.mean * self.mean)
+                    + old_sq_sum)
+                    / self.len as f64;
+            }
         } else {
+            // normal append
             self.len += temp_values.len();
             self.vec.append(&mut temp_values);
             self.capacity = self.vec.capacity();
