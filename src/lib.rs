@@ -315,6 +315,9 @@ impl SimpleAccumulator {
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
             self.last_write_position = (self.last_write_position + 1) % self.capacity;
+            if self.len == 0 {
+                self.last_write_position = 0;
+            }
             if self.len < self.capacity {
                 self.vec.push(y);
                 self.len += 1;
