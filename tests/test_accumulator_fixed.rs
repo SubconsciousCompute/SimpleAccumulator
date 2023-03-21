@@ -16,7 +16,7 @@ fn test_sanity_push_in_fixed_capacity() {
     for &v in &data {
         acc.push(v);
     }
-    println!("{:?}", acc);
+    println!("{acc:?}");
     assert_eq!(acc.vec.len(), CAPACITY);
     assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
 
@@ -56,7 +56,7 @@ fn test_only_n_recent_values() {
     // values pushed to it. They may not be in the same order.
     let a: HashSet<i32> = acc.vec.iter().map(|&x| x as i32).collect();
     let b: HashSet<i32> = data.into_iter().rev().take(CAPACITY).collect();
-    println!("{:?}\n{:?}", a, b);
+    println!("{a:?}\n{b:?}");
     assert!(a.len() <= CAPACITY); // duplicates
     assert_eq!(a.intersection(&b).count(), a.len());
     assert_eq!(a.difference(&b).count(), 0); // both set must be equal.

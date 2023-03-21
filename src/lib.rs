@@ -104,9 +104,10 @@ impl SimpleAccumulator {
     ///
     /// Panics if the provided `slice` has greater number of elements than provided `capacity`
     pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
-        if slice.len() > capacity {
-            panic!("Capacity less than length of given slice");
-        }
+        assert!(
+            slice.len() <= capacity,
+            "Capacity less than length of given slice"
+        );
 
         let mut vec: Vec<f64> = slice
             .clone()
@@ -207,8 +208,8 @@ impl SimpleAccumulator {
 
     /// We calculate the median using the quickselect algorithm, which avoids a full sort by sorting
     /// only partitions of the data set known to possibly contain the median. This uses cmp and
-    /// Ordering to succinctly decide the next median_partition to examine, and split_at to choose an
-    /// arbitrary pivot for the next median_partition at each step
+    /// Ordering to succinctly decide the next `median_partition` to examine, and `split_at` to choose an
+    /// arbitrary pivot for the next `median_partition` at each step
     pub fn calculate_median(&mut self) -> f64 {
         self.median = match self.len {
             even if even % 2 == 0 => {
