@@ -216,11 +216,11 @@ impl SimpleAccumulator {
                 let snd_med = median_select(&self.vec, even / 2);
 
                 match (fst_med, snd_med) {
-                    (Some(fst), Some(snd)) => Some((fst + snd) as f64 / 2.0),
+                    (Some(fst), Some(snd)) => Some((fst + snd) / 2.0),
                     _ => None,
                 }
             }
-            odd => median_select(&self.vec, odd / 2).map(|x| x as f64),
+            odd => median_select(&self.vec, odd / 2),
         }
         .unwrap();
 
