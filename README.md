@@ -11,7 +11,7 @@ Read [Documentation](https://docs.rs/simple_accumulator/latest/simple_accumulato
 **Note:** We calculate approx median(`(min + max + 2*mean)/4`) as to not iterate again and again but you can set the exact one by using 
 `calculate_median()`.
 
-Usage: 
+### Usage: 
 
 ```rust
 use simple_accumulator::SimpleAccumulator;
@@ -36,7 +36,7 @@ fn main() {
 }
 ```
 
-Output:
+### Output:
 
 ```shell
 SimpleAccumulator {
@@ -115,4 +115,27 @@ SimpleAccumulator {
     last_write_position: 0,
     accumulate: true,
 }
+```
+
+### Using fixed capacity
+
+```rust
+const CAPACITY: usize = 3;
+let mut acc = SimpleAccumulator::with_fixed_capacity::<f64>(&[], CAPACITY, true);
+
+let data = vec![0.0, 1.1, 2.2, 3.3, 4.4];
+for &v in &data {
+acc.push(v);
+}
+println!("{acc:?}");
+assert_eq!(acc.vec.len(), CAPACITY);
+assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
+
+acc.push(5.5);
+assert_eq!(acc.vec.len(), CAPACITY);
+assert_eq!(acc.vec, vec![3.3, 4.4, 5.5]);
+
+acc.push(6.6);
+assert_eq!(acc.vec.len(), CAPACITY);
+assert_eq!(acc.vec, vec![6.6, 4.4, 5.5]);
 ```
