@@ -103,6 +103,25 @@ impl SimpleAccumulator {
     /// cannot be converted.
     ///
     /// Panics if the provided `slice` has greater number of elements than provided `capacity`
+    ///
+    ///     const CAPACITY: usize = 3;
+    ///     let mut acc = SimpleAccumulator::with_fixed_capacity::<f64>(&[], CAPACITY, true);
+    ///
+    ///     let data = vec![0.0, 1.1, 2.2, 3.3, 4.4];
+    ///     for &v in &data {
+    ///         acc.push(v);
+    ///     }
+    ///     println!("{acc:?}");
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
+    ///
+    ///     acc.push(5.5);
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 5.5]);
+    ///
+    ///     acc.push(6.6);
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![6.6, 4.4, 5.5]);
     pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
         assert!(
             slice.len() <= capacity,
