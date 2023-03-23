@@ -104,6 +104,7 @@ impl SimpleAccumulator {
     ///
     /// Panics if the provided `slice` has greater number of elements than provided `capacity`
     ///
+    ///     use simple_accumulator::SimpleAccumulator;
     ///     const CAPACITY: usize = 3;
     ///     let mut acc = SimpleAccumulator::with_fixed_capacity::<f64>(&[], CAPACITY, true);
     ///
