@@ -103,10 +103,31 @@ impl SimpleAccumulator {
     /// cannot be converted.
     ///
     /// Panics if the provided `slice` has greater number of elements than provided `capacity`
+    ///
+    ///     use simple_accumulator::SimpleAccumulator;
+    ///     const CAPACITY: usize = 3;
+    ///     let mut acc = SimpleAccumulator::with_fixed_capacity::<f64>(&[], CAPACITY, true);
+    ///
+    ///     let data = vec![0.0, 1.1, 2.2, 3.3, 4.4];
+    ///     for &v in &data {
+    ///         acc.push(v);
+    ///     }
+    ///     println!("{acc:?}");
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
+    ///
+    ///     acc.push(5.5);
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 5.5]);
+    ///
+    ///     acc.push(6.6);
+    ///     assert_eq!(acc.vec.len(), CAPACITY);
+    ///     assert_eq!(acc.vec, vec![6.6, 4.4, 5.5]);
     pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
-        if slice.len() > capacity {
-            panic!("Capacity less than length of given slice");
-        }
+        assert!(
+            slice.len() <= capacity,
+            "Capacity less than length of given slice"
+        );
 
         let mut vec: Vec<f64> = slice
             .clone()
@@ -207,8 +228,8 @@ impl SimpleAccumulator {
 
     /// We calculate the median using the quickselect algorithm, which avoids a full sort by sorting
     /// only partitions of the data set known to possibly contain the median. This uses cmp and
-    /// Ordering to succinctly decide the next median_partition to examine, and split_at to choose an
-    /// arbitrary pivot for the next median_partition at each step
+    /// Ordering to succinctly decide the next `median_partition` to examine, and `split_at` to choose an
+    /// arbitrary pivot for the next `median_partition` at each step
     pub fn calculate_median(&mut self) -> f64 {
         self.median = match self.len {
             even if even % 2 == 0 => {
@@ -216,11 +237,11 @@ impl SimpleAccumulator {
                 let snd_med = median_select(&self.vec, even / 2);
 
                 match (fst_med, snd_med) {
-                    (Some(fst), Some(snd)) => Some((fst + snd) as f64 / 2.0),
+                    (Some(fst), Some(snd)) => Some((fst + snd) / 2.0),
                     _ => None,
                 }
             }
-            odd => median_select(&self.vec, odd / 2).map(|x| x as f64),
+            odd => median_select(&self.vec, odd / 2),
         }
         .unwrap();
 
