@@ -31,6 +31,8 @@ use std::cmp::Ordering;
 pub struct SimpleAccumulator {
     /// We use Vec to store the data
     pub vec: Vec<f64>,
+    /// Using Vec to privately store four moments, mean, 2nd moment, 3rd and 4th moment
+    stats: Vec<f64>,
     /// Average or mean of all data stored
     pub mean: f64,
     /// Population variance uses `N` not `N-1`
@@ -61,6 +63,12 @@ pub struct SimpleAccumulator {
     pub last_write_position: usize,
     /// Flag to set whether the fields update or not after a change(push, remove, pop)
     pub accumulate: bool,
+    /// Measure of bias in the population that is expected to follow a Poisson distribution
+    pub skewness: f64,
+    // Measure of the tail length of the distribution
+    pub kurtosis: f64,
+    // Measure of two modes existing in the population
+    pub bimodality: f64,
 }
 
 impl SimpleAccumulator {
@@ -73,8 +81,11 @@ impl SimpleAccumulator {
             .map(|x| T::to_f64(x).expect("Not a number"))
             .collect();
 
+        let stats: Vec<f64> = vec![0.0;4];
+
         let mut k = SimpleAccumulator {
             vec,
+            stats,
             mean: 0.0,
             population_variance: 0.0,
             min: 0.0,
@@ -88,6 +99,9 @@ impl SimpleAccumulator {
             fixed_capacity: false,
             last_write_position: 0,
             accumulate: flag,
+            skewness: 0.0,
+            kurtosis: 0.0,
+            bimodality:0.0,
         };
 
         if !k.vec.is_empty() && flag {
@@ -135,10 +149,13 @@ impl SimpleAccumulator {
             .map(|x| T::to_f64(x).unwrap())
             .collect();
 
+        let stats: Vec<f64> = vec![0.0;4];
+
         vec.reserve_exact(capacity);
 
         let mut k = SimpleAccumulator {
             vec,
+            stats,
             mean: 0.0,
             population_variance: 0.0,
             min: 0.0,
@@ -152,6 +169,9 @@ impl SimpleAccumulator {
             fixed_capacity: true,
             last_write_position: 0,
             accumulate: flag,
+            skewness: 0.0,
+            kurtosis: 0.0,
+            bimodality:0.0,
         };
 
         if !k.vec.is_empty() && flag {
@@ -170,15 +190,97 @@ impl SimpleAccumulator {
         self.calculate_min();
         self.calculate_max();
         self.calculate_median();
+        // Calculate mean, 2nd, 3rd, 4th moments online, 
+        // can be used to calculate mean, variance, skewness, kurtosis, bimodality online
+        self.calculate_stats_online();
+        self.calculate_skewness();
+        self.calculate_kurtosis();
+        self.calculate_bimodality();
+    }
+
+    /// Calculate the moments and collect in stats vector
+    pub fn calculate_stats_online(&mut self) {
+        let n = self.len as f64;
+        let delta = self.vec[self.len-1] - self.stats[0];
+        let delta_n = delta/n ;
+        let delta_n2 = delta_n * delta_n ;
+        let term1 = delta * delta_n * (n - 1.0);
+    
+        self.stats[0] += delta_n;
+        self.stats[3] += term1*delta_n2*(3.0 + n*n - 3.0*n) + 6.0*delta_n2*self.stats[1] - 4.0*delta_n*self.stats[2];
+        self.stats[2] += term1*delta_n*(n - 2.0) - 3.0*delta_n*self.stats[1];
+        self.stats[1] += term1;
+    }
+
+    /// Calculate skewness and return it
+    /// Offline version
+    pub fn calculate_skewness(&mut self) -> f64 {
+        let n = self.len as f64;
+        let std_dev = self.population_variance.sqrt();
+        
+        self.skewness = self
+        .vec
+        .iter()
+        .map(|&value| {
+            let diff = (value - self.mean)/std_dev;
+            diff.powi(3)
+        })
+        .sum::<f64>()
+        / n;
+        self.skewness
+    }
+    ///Online version
+    pub fn calculate_skewness_online(&mut self) -> f64 {
+        let n = self.len as f64;
+        self.skewness = ((n.sqrt())*self.stats[2])/(self.stats[1].powf(1.5));
+        self.skewness
+    }
+
+    /// Calculate kurtosis and return it
+    /// Offline version:
+    pub fn calculate_kurtosis(&mut self) -> f64 {
+        let n = self.len as f64;
+        let std_dev4 = self.population_variance * self.population_variance;
+        
+        self.kurtosis = self
+        .vec
+        .iter()
+        .map(|&value| {
+            let diff = value - self.mean;
+            diff.powi(4)
+        })
+        .sum::<f64>()
+        / (n*std_dev4);
+
+        self.kurtosis
+    }
+    /// Online kurtosis
+    pub fn calculate_kutosis_online(&mut self) -> f64 {
+        let n = self.len as f64;
+        self.kurtosis = (n*self.stats[3])/self.stats[1]*self.stats[1];
+        self.kurtosis
+    }
+
+    /// Calculate bimodality and return it
+    pub fn calculate_bimodality(&mut self) -> f64 {
+        self.bimodality = self.skewness * self.skewness/self.kurtosis;
+        self.bimodality
     }
 
     /// Calculate mean and return it
+    /// Offline version
     pub fn calculate_mean(&mut self) -> f64 {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
         self.mean
     }
+    ///Online version
+    pub fn calculate_mean_online(&mut self) -> f64 {
+        self.mean = self.stats[0];
+        self.mean
+    }
 
     /// Calculate population variance and return it
+    /// Offline version
     pub fn calculate_population_variance(&mut self) -> f64 {
         self.population_variance = self
             .vec
@@ -190,6 +292,12 @@ impl SimpleAccumulator {
             .sum::<f64>()
             / self.len as f64;
 
+        self.population_variance
+    }
+    ///Online version
+    pub fn calculate_population_variance_online(&mut self) -> f64 {
+        let n = self.len as f64;
+        self.population_variance = self.stats[1]/(n - 1.0);
         self.population_variance
     }
 
@@ -552,6 +660,10 @@ mod tests {
             x,
             SimpleAccumulator {
                 vec: Vec::from([1.0, 2.0, 3.0, 4.0,]),
+                //Below is what it should be if SimpleAccumulator worked in an onliner setting
+                //stats: Vec::from([2.5, 5.0, 0.0, 10.25]),
+                //Below is what it currently computes as computation is offline
+                stats: Vec::from([1.0, 12.0, 24.0, 84.0]),
                 mean: 2.5,
                 population_variance: 1.25,
                 min: 1.0,
@@ -564,6 +676,9 @@ mod tests {
                 fixed_capacity: false,
                 last_write_position: 0,
                 accumulate: true,
+                skewness:0.0,
+                kurtosis:1.64,
+                bimodality: 0.0,
             }
         );
     }
