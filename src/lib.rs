@@ -22,6 +22,7 @@
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
 #![allow(clippy::clone_double_ref)]
+pub mod check;
 use num::ToPrimitive;
 use std::cmp::Ordering;
 // use std::collections::HashMap;
@@ -513,6 +514,8 @@ impl SimpleAccumulator {
         // let mut value: Vec<f64> = value.iter().map(|x| T::to_f64(&x).unwrap()).collect();
         let mut sum = 0.0;
         let mut old_sq_sum = 0.0;
+        let mut old_cube_sum = 0.0;
+        let mut old_fourth_power_sum = 0.0;
 
         let mut temp_values: Vec<f64> = Vec::with_capacity(value.len());
 
@@ -523,6 +526,11 @@ impl SimpleAccumulator {
             sum += k;
             // to find variance
             old_sq_sum += k * k;
+            // to find skewness
+            old_cube_sum += k.powi(3);
+            //to find kurtosis
+            old_fourth_power_sum += k.powi(4);
+
             // updating min-max values
             if k > self.max {
                 self.max_ = self.max;
@@ -539,11 +547,23 @@ impl SimpleAccumulator {
         
         let old_old_mean = self.mean;
         let old_variance = self.population_variance;
+        let mut new_cube_sum = 0.0;
+        let mut new_fourth_power_sum = 0.0;
+        let new_len = (self.len + temp_values.len()) as f64;
+
         if self.accumulate {
-            self.mean = (self.mean * self.len as f64 + sum) / (self.len + temp_values.len()) as f64;
+            self.mean = (self.mean * self.len as f64 + sum) / new_len;
             let a = self.len as f64 * (self.population_variance + old_old_mean * old_old_mean);
-            let b = (-1.0) * (self.mean * self.mean) * (self.len + temp_values.len()) as f64;
-            self.population_variance = (a + old_sq_sum + b) / (self.len + temp_values.len()) as f64;    
+            let b = (-1.0) * (self.mean * self.mean);
+            self.population_variance = (a + old_sq_sum) / new_len + b;
+
+            let old_old_cube_sum = self.stats[2] + old_old_mean.powi(3) + 3.0*old_old_mean*old_variance;
+            new_cube_sum = old_old_cube_sum + old_cube_sum;
+            self.skewness = (new_cube_sum - self.mean.powi(3) - 3.0*self.mean*self.population_variance)/(new_len*self.population_variance.powf(1.5));
+
+            let old_old_fourth_power_sum = self.stats[3] + old_old_mean.powi(4) + 6.0 * old_old_mean.powi(2) *old_variance + 4.0*self.stats[2]*old_old_mean;
+            new_fourth_power_sum = old_old_fourth_power_sum + old_fourth_power_sum;
+            self.kurtosis = new_fourth_power_sum/(new_len * self.population_variance.powi(2));
         }
         
 
@@ -563,20 +583,31 @@ impl SimpleAccumulator {
                 }
                 let mut sum = 0.0;
                 let mut sq_sum = 0.0;
+                let mut cube_sum = 0.0;
+                let mut fourth_power_sum = 0.0;
+
                 for i in temp_values.iter().skip(start_fill_index) {
                     self.last_write_position = (self.last_write_position + 1) % self.capacity;
-                    sum += self.vec[self.last_write_position];
-                    sq_sum += self.vec[self.last_write_position] * self.vec[self.last_write_position];
+                    let num = self.vec[self.last_write_position];
+                    sum += num;
+                    sq_sum += num * num;
+                    cube_sum += num.powi(3);
+                    fourth_power_sum += num.powi(4);
                     self.vec[self.last_write_position] = *i;
                 }
                 
-                self.mean = ((self.mean * (self.len + temp_values.len()) as f64) - sum) / self.len as f64;
+                self.mean = ((self.mean * new_len) - sum) / self.len as f64;
 
                 self.population_variance = (self.len as f64
                     * (old_variance + old_old_mean * old_old_mean)
                     + (-1.0) * (sq_sum + self.len as f64 * self.mean * self.mean)
                     + old_sq_sum)
-                    / self.len as f64;         
+                    / self.len as f64;   
+
+                self.skewness = (new_cube_sum - cube_sum - self.mean.powi(3) - 3.0*self.mean*self.population_variance)
+                /((self.len as f64)*self.population_variance.powf(1.5));     
+
+                self.kurtosis =  (new_fourth_power_sum - fourth_power_sum)/((self.len as f64) * self.population_variance.powi(2));
             }
         } 
         // Using vector append when fixed_capacity is 'false'
@@ -589,11 +620,11 @@ impl SimpleAccumulator {
 
         self.stats[0] = self.mean;
         self.stats[1] = self.population_variance * self.len as f64;
+        self.stats[2] = self.skewness * self.population_variance.powf(1.5) * self.len as f64;
+        self.stats[3] = self.kurtosis * self.population_variance.powi(2) * self.len as f64;
 
         if self.accumulate {
             self.calculate_approx_median();
-            self.calculate_skewness();
-            self.calculate_kurtosis();
             self.calculate_bimodality();
         }
     }
