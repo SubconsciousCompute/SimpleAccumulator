@@ -1,8 +1,8 @@
 [package]
 name = "simple_accumulator"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
-authors = ["sn99 <siddharthn.099@gmail.com>"]
+authors = ["sn99 <siddharthn.099@gmail.com>, purnatag <purnatag@gmail.com>"]
 description = "A simple accumulator"
 repository = "https://github.com/sn99/SimpleAccumulator"
 license = "MIT"
@@ -15,6 +15,7 @@ documentation = "https://docs.rs/simple_accumulator"
 
 [dependencies]
 num = "0.4.0"
+rand = "0.8.5"
 
 [profile.release]
 lto = true
@@ -23,4 +24,4 @@ opt-level = 3
 
 [dev-dependencies]
 ordered-float = "3.0.0"
-rand = "0.8.5"
+

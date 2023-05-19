@@ -14,3 +14,7 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 - Issue #3
 ### Added
 - Changelog file.
+
+## [0.4.0] - 2023-05-18
+### Added
+- Functions computing 'skewness', 'kurtosis', 'bimodality coefficient'
