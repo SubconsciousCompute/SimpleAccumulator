@@ -22,7 +22,7 @@
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
 #![allow(clippy::clone_double_ref)]
-pub mod check;
+
 use num::ToPrimitive;
 use std::cmp::Ordering;
 // use std::collections::HashMap;
@@ -37,9 +37,9 @@ pub struct SimpleAccumulator {
     /// Average/mean of the data
     pub mean: f64,
     /// Population variance, uses `N` not `N-1`
-    pub population_variance: f64,
+    pub variance: f64,
     /*
-    /// (Standard deviation)^2 = population_variance
+    /// (Standard deviation)^2 = variance
     pub standard_deviation: f64,
     */
     /// Minimum element in the Accumulator
@@ -88,7 +88,7 @@ impl SimpleAccumulator {
             vec,
             stats,
             mean: 0.0,
-            population_variance: 0.0,
+            variance: 0.0,
             min: 0.0,
             min_: f64::INFINITY,
             max: 0.0,
@@ -158,7 +158,7 @@ impl SimpleAccumulator {
             vec,
             stats,
             mean: 0.0,
-            population_variance: 0.0,
+            variance: 0.0,
             min: 0.0,
             min_: f64::INFINITY,
             max: 0.0,
@@ -186,7 +186,7 @@ impl SimpleAccumulator {
 
     pub fn calculate_all(&mut self) {
         self.calculate_mean();
-        self.calculate_population_variance();
+        self.calculate_variance();
         // self.calculate_standard_deviation();
         self.calculate_min();
         self.calculate_max();
@@ -202,7 +202,7 @@ impl SimpleAccumulator {
     /// Offline version
     pub fn calculate_skewness(&mut self) -> f64 {
         let n = self.len as f64;
-        let std_dev = self.population_variance.sqrt();
+        let std_dev = self.variance.sqrt();
         
         self.skewness = self
         .vec
@@ -214,6 +214,7 @@ impl SimpleAccumulator {
         .sum::<f64>()
         / n;
         self.stats[2] = n * std_dev.powi(3) * self.skewness;
+        self.skewness = (self.skewness * 100.0).round() / 100.0;
 
         self.skewness
     }
@@ -221,6 +222,8 @@ impl SimpleAccumulator {
     pub fn calculate_skewness_online(&mut self) -> f64 {
         let n = self.len as f64;
         self.skewness = ((n.sqrt())*self.stats[2])/(self.stats[1].powf(1.5));
+        self.skewness = (self.skewness * 100.0).round() / 100.0;
+
         self.skewness
     }
 
@@ -228,7 +231,7 @@ impl SimpleAccumulator {
     /// Offline version:
     pub fn calculate_kurtosis(&mut self) -> f64 {
         let n = self.len as f64;
-        let std_dev4 = self.population_variance * self.population_variance;
+        let std_dev4 = self.variance * self.variance;
         
         self.stats[3] = self
         .vec
@@ -239,6 +242,7 @@ impl SimpleAccumulator {
         })
         .sum::<f64>();
         self.kurtosis = self.stats[3]/ (n*std_dev4);
+        self.kurtosis = (self.kurtosis * 100.0).round() / 100.0;
 
         self.kurtosis
     }
@@ -246,12 +250,16 @@ impl SimpleAccumulator {
     pub fn calculate_kurtosis_online(&mut self) -> f64 {
         let n = self.len as f64;
         self.kurtosis = (n*self.stats[3])/self.stats[1]*self.stats[1];
+        self.kurtosis = (self.kurtosis * 100.0).round() / 100.0;
+
         self.kurtosis
     }
 
-    /// Calculate bimodality and return it
+    /// Calculate bimodality coefficient and return it
     pub fn calculate_bimodality(&mut self) -> f64 {
         self.bimodality = self.skewness * self.skewness/self.kurtosis;
+        self.bimodality = (self.bimodality * 100.0).round() / 100.0;
+
         self.bimodality
     }
 
@@ -259,18 +267,22 @@ impl SimpleAccumulator {
     /// Offline version
     pub fn calculate_mean(&mut self) -> f64 {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
+        self.mean = (self.mean * 100.0).round() / 100.0;
         self.stats[0] = self.mean;
+
         self.mean
     }
     ///Online version
     pub fn calculate_mean_online(&mut self) -> f64 {
         self.mean = self.stats[0];
+        self.mean = (self.mean * 100.0).round() / 100.0;
+
         self.mean
     }
 
-    /// Calculate population variance and return it
+    /// Calculate variance and return it
     /// Offline version
-    pub fn calculate_population_variance(&mut self) -> f64 {
+    pub fn calculate_variance(&mut self) -> f64 {
         self.stats[1] = self
             .vec
             .iter()
@@ -279,20 +291,26 @@ impl SimpleAccumulator {
                 diff * diff
             })
             .sum::<f64>();
-        self.population_variance = self.stats[1]/ self.len as f64;
+        self.variance = self.stats[1]/ self.len as f64;
+        self.variance = (self.variance * 100.0).round() / 100.0;
 
-        self.population_variance
+        self.variance
     }
     ///Online version
-    pub fn calculate_population_variance_online(&mut self) -> f64 {
+    pub fn calculate_variance_online(&mut self) -> f64 {
         let n = self.len as f64;
-        self.population_variance = self.stats[1]/(n - 1.0);
-        self.population_variance
+        self.variance = self.stats[1]/(n - 1.0);
+        self.variance = (self.variance * 100.0).round() / 100.0;
+
+        self.variance
     }
 
     /// Calculate standard deviation from population variance
     pub fn calculate_standard_deviation(&mut self) -> f64 {
-        self.population_variance.sqrt()
+        let mut std_dev = self.variance.sqrt();
+        std_dev = (std_dev * 100.0).round()/100.0;
+
+        std_dev
     }
 
     /// Calculate minimum(s) of values and return min
@@ -463,7 +481,7 @@ impl SimpleAccumulator {
                 //-------------------------------------------------------------------------------------------------------------------------
                 // Calculating stats online from the updated stats vector
                 self.calculate_mean_online();
-                self.calculate_population_variance_online();
+                self.calculate_variance_online();
                 self.calculate_skewness_online();
                 self.calculate_kurtosis_online();
                 self.calculate_bimodality();
@@ -475,8 +493,8 @@ impl SimpleAccumulator {
                 //Old method:
                 // variance
                 /*
-                self.population_variance = (((self.len as f64)
-                    * (self.population_variance
+                self.variance = (((self.len as f64)
+                    * (self.variance
                         + (self.mean - old_mean) * (self.mean - old_mean)))
                     + ((y - k) * (y + k - 2.0 * self.mean)))
                     / self.len as f64;
@@ -546,24 +564,29 @@ impl SimpleAccumulator {
         }
         
         let old_old_mean = self.mean;
-        let old_variance = self.population_variance;
-        let mut new_cube_sum = 0.0;
-        let mut new_fourth_power_sum = 0.0;
+        let old_variance = self.variance;
+        //let mut new_cube_sum = 0.0;
+        //let mut new_fourth_power_sum = 0.0;
         let new_len = (self.len + temp_values.len()) as f64;
 
         if self.accumulate {
             self.mean = (self.mean * self.len as f64 + sum) / new_len;
-            let a = self.len as f64 * (self.population_variance + old_old_mean * old_old_mean);
+            let a = self.len as f64 * (self.variance + old_old_mean * old_old_mean);
             let b = (-1.0) * (self.mean * self.mean);
-            self.population_variance = (a + old_sq_sum) / new_len + b;
+            self.variance = (a + old_sq_sum) / new_len + b;
 
             let old_old_cube_sum = self.stats[2] + old_old_mean.powi(3) + 3.0*old_old_mean*old_variance;
-            new_cube_sum = old_old_cube_sum + old_cube_sum;
-            self.skewness = (new_cube_sum - self.mean.powi(3) - 3.0*self.mean*self.population_variance)/(new_len*self.population_variance.powf(1.5));
+            let new_cube_sum = old_old_cube_sum + old_cube_sum;
+            self.skewness = (new_cube_sum - self.mean.powi(3) - 3.0*self.mean*self.variance)/(new_len*self.variance.powf(1.5));
 
             let old_old_fourth_power_sum = self.stats[3] + old_old_mean.powi(4) + 6.0 * old_old_mean.powi(2) *old_variance + 4.0*self.stats[2]*old_old_mean;
-            new_fourth_power_sum = old_old_fourth_power_sum + old_fourth_power_sum;
-            self.kurtosis = new_fourth_power_sum/(new_len * self.population_variance.powi(2));
+            let new_fourth_power_sum = old_old_fourth_power_sum + old_fourth_power_sum;
+            self.kurtosis = new_fourth_power_sum/(new_len * self.variance.powi(2));
+
+            self.mean = (self.mean * 100.0).round()/100.0;
+            self.variance = (self.variance * 100.0).round()/100.0;
+            self.skewness = (self.skewness * 100.0).round()/100.0;
+            self.kurtosis = (self.kurtosis * 100.0).round()/100.0;
         }
         
 
@@ -572,7 +595,6 @@ impl SimpleAccumulator {
             if temp_values.len() <= self.capacity - self.len {
                 self.len += temp_values.len();
                 self.vec.append(&mut temp_values);
-                //self.calculate_approx_median();
             }
             // Deleting at most temp_values.len() number of oldest values and replacing with the
             // new ones obeying FIFO, since the buffer does not have space for vector append() 
@@ -581,33 +603,43 @@ impl SimpleAccumulator {
                 if let Some(i) = temp_values.len().checked_sub(self.len) {
                     start_fill_index = i;
                 }
+
+                /*
                 let mut sum = 0.0;
                 let mut sq_sum = 0.0;
                 let mut cube_sum = 0.0;
                 let mut fourth_power_sum = 0.0;
+                */
 
                 for i in temp_values.iter().skip(start_fill_index) {
                     self.last_write_position = (self.last_write_position + 1) % self.capacity;
-                    let num = self.vec[self.last_write_position];
-                    sum += num;
-                    sq_sum += num * num;
-                    cube_sum += num.powi(3);
-                    fourth_power_sum += num.powi(4);
+                    //let num = self.vec[self.last_write_position];
+                    //sum += num;
+                    //sq_sum += num * num;
+                    //cube_sum += num.powi(3);
+                    //fourth_power_sum += num.powi(4);
                     self.vec[self.last_write_position] = *i;
                 }
                 
+                /* //Old incorrect online stats calculation
                 self.mean = ((self.mean * new_len) - sum) / self.len as f64;
 
-                self.population_variance = (self.len as f64
+                self.variance = (self.len as f64
                     * (old_variance + old_old_mean * old_old_mean)
                     + (-1.0) * (sq_sum + self.len as f64 * self.mean * self.mean)
                     + old_sq_sum)
                     / self.len as f64;   
 
-                self.skewness = (new_cube_sum - cube_sum - self.mean.powi(3) - 3.0*self.mean*self.population_variance)
-                /((self.len as f64)*self.population_variance.powf(1.5));     
+                self.skewness = (new_cube_sum - cube_sum - self.mean.powi(3) - 3.0*self.mean*self.variance)
+                /((self.len as f64)*self.variance.powf(1.5));     
 
-                self.kurtosis =  (new_fourth_power_sum - fourth_power_sum)/((self.len as f64) * self.population_variance.powi(2));
+                self.kurtosis =  (new_fourth_power_sum - fourth_power_sum)/((self.len as f64) * self.variance.powi(2));
+                 */
+
+                // Calculating stats offline since buffer is O(1) size
+                // Online calculation is made impossible by the fact that without iterating through the vector
+                // we cannot know the sum of the old elements remaining in the buffer
+                self.calculate_all();
             }
         } 
         // Using vector append when fixed_capacity is 'false'
@@ -615,13 +647,12 @@ impl SimpleAccumulator {
             self.len += temp_values.len();
             self.vec.append(&mut temp_values);
             self.capacity = self.vec.capacity();
-            //self.calculate_approx_median();
         }
 
         self.stats[0] = self.mean;
-        self.stats[1] = self.population_variance * self.len as f64;
-        self.stats[2] = self.skewness * self.population_variance.powf(1.5) * self.len as f64;
-        self.stats[3] = self.kurtosis * self.population_variance.powi(2) * self.len as f64;
+        self.stats[1] = self.variance * self.len as f64;
+        self.stats[2] = self.skewness * self.variance.powf(1.5) * self.len as f64;
+        self.stats[3] = self.kurtosis * self.variance.powi(2) * self.len as f64;
 
         if self.accumulate {
             self.calculate_approx_median();
@@ -690,10 +721,10 @@ impl SimpleAccumulator {
         // population variance
         let iv = self.mean - value;
         let ib = (self.len as f64 - 1.0)
-            * (self.population_variance - (2.0 * self.mean * old_mean)
+            * (self.variance - (2.0 * self.mean * old_mean)
                 + (old_mean * old_mean)
                 + (self.mean * self.mean));
-        self.population_variance = (ib + (iv * iv)) / (self.len as f64);*/
+        self.variance = (ib + (iv * iv)) / (self.len as f64);*/
 
         let n = self.len as f64;
         let delta = self.vec[self.len-1] - self.stats[0];
@@ -708,7 +739,7 @@ impl SimpleAccumulator {
 
         // Calculating stats online from the updated stats vector
         self.calculate_mean_online();
-        self.calculate_population_variance_online();
+        self.calculate_variance_online();
         self.calculate_skewness_online();
         self.calculate_kurtosis_online();
         self.calculate_bimodality();
@@ -733,10 +764,10 @@ impl SimpleAccumulator {
         // population variance
         let iv = self.mean - value;
         let ib = (self.len as f64)
-            * (self.population_variance - (2.0 * self.mean * old_mean)
+            * (self.variance - (2.0 * self.mean * old_mean)
                 + (old_mean * old_mean)
                 + (self.mean * self.mean));
-        self.population_variance = (ib - (iv * iv)) / (self.len as f64 - 1.0);
+        self.variance = (ib - (iv * iv)) / (self.len as f64 - 1.0);
          */
 
         let n = self.len as f64;
@@ -752,7 +783,7 @@ impl SimpleAccumulator {
 
          // Calculating stats online from the updated stats vector
          self.calculate_mean_online();
-         self.calculate_population_variance_online();
+         self.calculate_variance_online();
          self.calculate_skewness_online();
          self.calculate_kurtosis_online();
          self.calculate_bimodality();
@@ -791,7 +822,7 @@ mod tests {
                 vec: Vec::from([1.0, 2.0, 3.0, 4.0,]),
                 stats: Vec::from([2.5, 5.0, 0.0, 10.25]),
                 mean: 2.5,
-                population_variance: 1.25,
+                variance: 1.25,
                 min: 1.0,
                 min_: 2.0,
                 max: 4.0,
@@ -812,9 +843,9 @@ mod tests {
             y,
             SimpleAccumulator {
                 vec: Vec::from([101.5, 33.25, 56.75, 61.5, 10.0,]),
-                stats: Vec::from([52.6, 4676.825000000001, 33152.759999999966,  9158002.1688125]),
+                stats: Vec::from([52.6, 4676.825000000001, 33152.759999999944,  9158002.1688125]),
                 mean: 52.6,
-                population_variance: 935.3650000000001,
+                variance: 935.37,
                 min: 10.0,
                 min_: 33.25,
                 max: 101.5,
@@ -825,9 +856,9 @@ mod tests {
                 fixed_capacity: false,
                 last_write_position: 0,
                 accumulate: true,
-                skewness:0.23178109621597587,
-                kurtosis:2.0934785107967406,
-                bimodality: 0.025661823747421056,
+                skewness:0.23,
+                kurtosis:2.09,
+                bimodality: 0.03,
             }
         );
     }
