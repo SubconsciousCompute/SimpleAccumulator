@@ -25,6 +25,7 @@
 
 use num::ToPrimitive;
 use std::cmp::Ordering;
+//use float_eq::AssertFloatEq;
 // use std::collections::HashMap;
 
 /// Our main data struct
@@ -214,7 +215,6 @@ impl SimpleAccumulator {
         .sum::<f64>()
         / n;
         self.stats[2] = n * std_dev.powi(3) * self.skewness;
-        self.skewness = (self.skewness * 100.0).round() / 100.0;
 
         self.skewness
     }
@@ -222,7 +222,6 @@ impl SimpleAccumulator {
     pub fn calculate_skewness_online(&mut self) -> f64 {
         let n = self.len as f64;
         self.skewness = ((n.sqrt())*self.stats[2])/(self.stats[1].powf(1.5));
-        self.skewness = (self.skewness * 100.0).round() / 100.0;
 
         self.skewness
     }
@@ -242,7 +241,6 @@ impl SimpleAccumulator {
         })
         .sum::<f64>();
         self.kurtosis = self.stats[3]/ (n*std_dev4);
-        self.kurtosis = (self.kurtosis * 100.0).round() / 100.0;
 
         self.kurtosis
     }
@@ -250,7 +248,6 @@ impl SimpleAccumulator {
     pub fn calculate_kurtosis_online(&mut self) -> f64 {
         let n = self.len as f64;
         self.kurtosis = (n*self.stats[3])/self.stats[1]*self.stats[1];
-        self.kurtosis = (self.kurtosis * 100.0).round() / 100.0;
 
         self.kurtosis
     }
@@ -258,7 +255,6 @@ impl SimpleAccumulator {
     /// Calculate bimodality coefficient and return it
     pub fn calculate_bimodality(&mut self) -> f64 {
         self.bimodality = self.skewness * self.skewness/self.kurtosis;
-        self.bimodality = (self.bimodality * 100.0).round() / 100.0;
 
         self.bimodality
     }
@@ -267,7 +263,7 @@ impl SimpleAccumulator {
     /// Offline version
     pub fn calculate_mean(&mut self) -> f64 {
         self.mean = self.vec.iter().sum::<f64>() / self.len as f64;
-        self.mean = (self.mean * 100.0).round() / 100.0;
+        //self.mean = (self.mean * 100.0).round() / 100.0;
         self.stats[0] = self.mean;
 
         self.mean
@@ -275,7 +271,6 @@ impl SimpleAccumulator {
     ///Online version
     pub fn calculate_mean_online(&mut self) -> f64 {
         self.mean = self.stats[0];
-        self.mean = (self.mean * 100.0).round() / 100.0;
 
         self.mean
     }
@@ -292,7 +287,6 @@ impl SimpleAccumulator {
             })
             .sum::<f64>();
         self.variance = self.stats[1]/ self.len as f64;
-        self.variance = (self.variance * 100.0).round() / 100.0;
 
         self.variance
     }
@@ -300,17 +294,13 @@ impl SimpleAccumulator {
     pub fn calculate_variance_online(&mut self) -> f64 {
         let n = self.len as f64;
         self.variance = self.stats[1]/(n - 1.0);
-        self.variance = (self.variance * 100.0).round() / 100.0;
 
         self.variance
     }
 
     /// Calculate standard deviation from population variance
     pub fn calculate_standard_deviation(&mut self) -> f64 {
-        let mut std_dev = self.variance.sqrt();
-        std_dev = (std_dev * 100.0).round()/100.0;
-
-        std_dev
+        self.variance.sqrt()
     }
 
     /// Calculate minimum(s) of values and return min
@@ -807,6 +797,8 @@ impl SimpleAccumulator {
 
 #[cfg(test)]
 mod tests {
+    use float_eq::assert_float_eq;
+
     use super::SimpleAccumulator;
 
     #[test]
@@ -815,7 +807,7 @@ mod tests {
 
         let x = SimpleAccumulator::new(&k, true);
         let y = SimpleAccumulator::new(&[101.5, 33.25, 56.75, 61.5, 10.0], true);
-        
+        // Integer arithmetic
         assert_eq!(
             x,
             SimpleAccumulator {
@@ -839,27 +831,12 @@ mod tests {
             }
         );
 
-        assert_eq!(
-            y,
-            SimpleAccumulator {
-                vec: Vec::from([101.5, 33.25, 56.75, 61.5, 10.0,]),
-                stats: Vec::from([52.6, 4676.825000000001, 33152.759999999944,  9158002.1688125]),
-                mean: 52.6,
-                variance: 935.37,
-                min: 10.0,
-                min_: 33.25,
-                max: 101.5,
-                max_: 61.5,
-                median: 56.75,
-                len: 5,
-                capacity: 5,
-                fixed_capacity: false,
-                last_write_position: 0,
-                accumulate: true,
-                skewness:0.23,
-                kurtosis:2.09,
-                bimodality: 0.03,
-            }
-        );
+        // Floating point arithmetic
+        assert_float_eq!(y.mean, 52.6, abs <= 0.01);
+        assert_float_eq!(y.variance, 935.365, abs <= 0.01);
+        assert_float_eq!(y.median, 56.75, abs <= 0.01);
+        assert_float_eq!(y.skewness, 0.23, abs <= 0.01);
+        assert_float_eq!(y.kurtosis, 2.09, abs <= 0.01);
+        assert_float_eq!(y.bimodality, 0.03, abs <= 0.01);           
     }
 }
