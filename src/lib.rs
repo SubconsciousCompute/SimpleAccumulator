@@ -33,9 +33,14 @@ use std::cmp::Ordering;
 pub struct SimpleAccumulator {
     /// Vec to store the data
     pub vec: Vec<f64>,
-    /// Vec to privately store four moments, mean, 2nd moment, 3rd and 4th moment
+    /// Vec to privately store mean and three moment differences
     stats: Vec<f64>,
-    /// Average/mean of the data
+    /// Running mean
+    pub r_mean: f64,
+    /// Running variance
+    pub r_variance:f64,
+    /// Average/mean of the accumulator data
+    /// Same as running mean when capacity is not fixed
     pub mean: f64,
     /// Population variance, uses `N` not `N-1`
     pub variance: f64,
@@ -88,6 +93,8 @@ impl SimpleAccumulator {
         let mut k = SimpleAccumulator {
             vec,
             stats,
+            r_mean: 0.0,
+            r_variance: 0.0,
             mean: 0.0,
             variance: 0.0,
             min: 0.0,
@@ -158,6 +165,8 @@ impl SimpleAccumulator {
         let mut k = SimpleAccumulator {
             vec,
             stats,
+            r_mean: 0.0,
+            r_variance: 0.0,
             mean: 0.0,
             variance: 0.0,
             min: 0.0,
@@ -813,6 +822,8 @@ mod tests {
             SimpleAccumulator {
                 vec: Vec::from([1.0, 2.0, 3.0, 4.0,]),
                 stats: Vec::from([2.5, 5.0, 0.0, 10.25]),
+                r_mean: 2.5,
+                r_variance: 1.25,
                 mean: 2.5,
                 variance: 1.25,
                 min: 1.0,
