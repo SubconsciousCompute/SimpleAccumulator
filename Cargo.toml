@@ -1,6 +1,6 @@
 [package]
 name = "simple_accumulator"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 authors = ["sn99 <siddharthn.099@gmail.com>, purnatag <purnatag@gmail.com>"]
 description = "A simple accumulator"
@@ -17,7 +17,6 @@ documentation = "https://docs.rs/simple_accumulator"
 num = "0.4.0"
 rand = "0.8.5"
 
-
 [dependencies.float_eq]
 version = "1"
 features = ["derive"]
@@ -28,12 +27,11 @@ codegen-units = 1
 opt-level = 3
 
 [dev-dependencies]
-ordered-float = "3.0.0"
-plotly = "0.6.0"
+ordered-float = "3.7.0"
+plotly = {version = "0.8.3"}
 
 [lib]
 name = "simple_accumulator"
 
 [[example]]
 name = "error_mean"
-
