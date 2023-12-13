@@ -21,7 +21,7 @@
 //! get the updated field values
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
-#![allow(clippy::clone_double_ref)]
+#![allow(suspicious_double_ref_op)]
 
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -29,7 +29,7 @@ use std::cmp::Ordering;
 // use std::collections::HashMap;
 
 /// Our main data struct
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct SimpleAccumulator {
     /// Vec to store the data
     pub vec: Vec<f64>,
@@ -86,7 +86,6 @@ impl SimpleAccumulator {
     /// cannot be converted
     pub fn new<T: ToPrimitive>(slice: &[T], flag: bool) -> Self {
         let vec: Vec<f64> = slice
-            .clone()
             .iter()
             .map(|x| T::to_f64(x).expect("Not a number"))
             .collect();
@@ -169,7 +168,6 @@ impl SimpleAccumulator {
         );
 
         let mut vec: Vec<f64> = slice
-            .clone()
             .iter()
             .map(|x| T::to_f64(x).unwrap())
             .collect();
@@ -178,7 +176,7 @@ impl SimpleAccumulator {
 
         vec.reserve_exact(capacity);
 
-        if slice.len() == 0 {
+        if slice.is_empty() {
             vec = Vec::with_capacity(capacity);
         }
 
@@ -589,7 +587,7 @@ impl SimpleAccumulator {
                 // If temp is really long only the last 'capacity' number of elements
                 // will be filling the buffer  
 
-                if self.vec.len() > 0 {
+                if !self.vec.is_empty() {
                     for i in temp_values.iter().skip(start_fill_index) {
                         self.vec[self.last_write_position] = *i;
                         self.last_write_position = (self.last_write_position + 1) % self.capacity;
