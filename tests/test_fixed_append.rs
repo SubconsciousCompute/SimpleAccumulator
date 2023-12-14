@@ -48,7 +48,6 @@ fn test_append_in_fixed_capacity_random() {
 
     // and push values into it.
     acc.append(&copy);
-    
 
     assert_eq!(acc.vec.len(), CAPACITY);
 

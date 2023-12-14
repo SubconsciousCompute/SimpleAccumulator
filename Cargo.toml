@@ -16,6 +16,7 @@ documentation = "https://docs.rs/simple_accumulator"
 [dependencies]
 num = "0.4.0"
 rand = "0.8.5"
+serde = { version = "1.0.193", features = ["derive"] }
 
 [dependencies.float_eq]
 version = "1"
