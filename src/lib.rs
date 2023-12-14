@@ -179,7 +179,10 @@ impl SimpleAccumulator {
             "Capacity less than length of given slice"
         );
 
-        let mut vec: Vec<f64> = slice.iter().map(|x| T::to_f64(x).unwrap()).collect();
+        let mut vec: Vec<f64> = slice
+            .iter()
+            .map(|x| T::to_f64(x).unwrap())
+            .collect();
 
         let stats: Vec<f64> = vec![0.0; 4];
 
