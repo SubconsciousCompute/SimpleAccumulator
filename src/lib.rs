@@ -482,7 +482,7 @@ impl SimpleAccumulator {
         // Calculation is online following Knuth's algorithm
         self.total += 1;
         let delta = y - self.mean;
-        let delta_n = delta / self.total as f64;
+        let delta_n = delta / (self.total as f64);
         self.mean += delta_n;
         let term1 = delta * delta_n * (self.total as f64 - 1.0);
         let stats1 = self.variance * (self.total as f64 - 2.0) + term1;
