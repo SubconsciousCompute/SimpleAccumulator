@@ -21,7 +21,7 @@
 //! get the updated field values
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
-#![allow(clippy::clone_double_ref)]
+#![allow(suspicious_double_ref_op)]
 
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -29,7 +29,7 @@ use std::cmp::Ordering;
 // use std::collections::HashMap;
 
 /// Our main data struct
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct SimpleAccumulator {
     /// Vec to store the data
     pub vec: Vec<f64>,
@@ -86,19 +86,18 @@ impl SimpleAccumulator {
     /// cannot be converted
     pub fn new<T: ToPrimitive>(slice: &[T], flag: bool) -> Self {
         let vec: Vec<f64> = slice
-            .clone()
             .iter()
             .map(|x| T::to_f64(x).expect("Not a number"))
             .collect();
 
-        let stats: Vec<f64> = vec![0.0;4];
+        let stats: Vec<f64> = vec![0.0; 4];
 
         let mut k = SimpleAccumulator {
             vec,
             stats,
             r_mean: 0.0,
             r_variance: 0.0,
-            r_total:0,
+            r_total: 0,
             mean: 0.0,
             variance: 0.0,
             min: 0.0,
@@ -114,7 +113,7 @@ impl SimpleAccumulator {
             accumulate: flag,
             skewness: 0.0,
             kurtosis: 0.0,
-            bimodality:0.0,
+            bimodality: 0.0,
         };
 
         if !k.vec.is_empty() {
@@ -124,12 +123,11 @@ impl SimpleAccumulator {
             // even when accumulate flag is off
             if flag {
                 k.calculate_all();
-            }
-            else {
+            } else {
                 k.calculate_mean();
                 k.calculate_variance();
             }
-            
+
             k.r_mean = k.mean;
             k.r_variance = k.variance;
             k.r_total = k.len;
@@ -168,17 +166,13 @@ impl SimpleAccumulator {
             "Capacity less than length of given slice"
         );
 
-        let mut vec: Vec<f64> = slice
-            .clone()
-            .iter()
-            .map(|x| T::to_f64(x).unwrap())
-            .collect();
+        let mut vec: Vec<f64> = slice.iter().map(|x| T::to_f64(x).unwrap()).collect();
 
-        let stats: Vec<f64> = vec![0.0;4];
+        let stats: Vec<f64> = vec![0.0; 4];
 
         vec.reserve_exact(capacity);
 
-        if slice.len() == 0 {
+        if slice.is_empty() {
             vec = Vec::with_capacity(capacity);
         }
 
@@ -203,7 +197,7 @@ impl SimpleAccumulator {
             accumulate: flag,
             skewness: 0.0,
             kurtosis: 0.0,
-            bimodality:0.0,
+            bimodality: 0.0,
         };
 
         if !k.vec.is_empty() {
@@ -213,8 +207,7 @@ impl SimpleAccumulator {
             // even when accumulate flag is off
             if flag {
                 k.calculate_all();
-            }
-            else {
+            } else {
                 k.calculate_mean();
                 k.calculate_variance();
             }
@@ -243,22 +236,22 @@ impl SimpleAccumulator {
         self.calculate_bimodality();
     }
 
-/*================================================ STATS CALCULATION FUNCTIONS ============================================================= */
+    /*================================================ STATS CALCULATION FUNCTIONS ============================================================= */
     /// Calculate skewness and return it
     /// Offline version
     pub fn calculate_skewness(&mut self) -> f64 {
         let n = self.len as f64;
         let std_dev = self.variance.sqrt();
-        
+
         self.skewness = self
-        .vec
-        .iter()
-        .map(|&value| {
-            let diff = (value - self.mean)/std_dev;
-            diff.powi(3)
-        })
-        .sum::<f64>()
-        / n;
+            .vec
+            .iter()
+            .map(|&value| {
+                let diff = (value - self.mean) / std_dev;
+                diff.powi(3)
+            })
+            .sum::<f64>()
+            / n;
         self.stats[2] = n * std_dev.powi(3) * self.skewness;
 
         self.skewness
@@ -266,7 +259,7 @@ impl SimpleAccumulator {
     ///Online version
     pub fn calculate_skewness_online(&mut self) -> f64 {
         let n = self.len as f64;
-        self.skewness = ((n.sqrt())*self.stats[2])/(self.stats[1].powf(1.5));
+        self.skewness = ((n.sqrt()) * self.stats[2]) / (self.stats[1].powf(1.5));
 
         self.skewness
     }
@@ -276,30 +269,30 @@ impl SimpleAccumulator {
     pub fn calculate_kurtosis(&mut self) -> f64 {
         let n = self.len as f64;
         let std_dev4 = self.variance * self.variance;
-        
+
         self.stats[3] = self
-        .vec
-        .iter()
-        .map(|&value| {
-            let diff = value - self.mean;
-            diff.powi(4)
-        })
-        .sum::<f64>();
-        self.kurtosis = self.stats[3]/ (n*std_dev4);
+            .vec
+            .iter()
+            .map(|&value| {
+                let diff = value - self.mean;
+                diff.powi(4)
+            })
+            .sum::<f64>();
+        self.kurtosis = self.stats[3] / (n * std_dev4);
 
         self.kurtosis
     }
     /// Online kurtosis
     pub fn calculate_kurtosis_online(&mut self) -> f64 {
         let n = self.len as f64;
-        self.kurtosis = (n*self.stats[3])/self.stats[1]*self.stats[1];
+        self.kurtosis = (n * self.stats[3]) / self.stats[1] * self.stats[1];
 
         self.kurtosis
     }
 
     /// Calculate bimodality coefficient and return it
     pub fn calculate_bimodality(&mut self) -> f64 {
-        self.bimodality = self.skewness * self.skewness/self.kurtosis;
+        self.bimodality = self.skewness * self.skewness / self.kurtosis;
 
         self.bimodality
     }
@@ -331,14 +324,14 @@ impl SimpleAccumulator {
                 diff * diff
             })
             .sum::<f64>();
-        self.variance = self.stats[1]/ self.len as f64;
+        self.variance = self.stats[1] / self.len as f64;
 
         self.variance
     }
     ///Online version
     pub fn calculate_variance_online(&mut self) -> f64 {
         let n = self.len as f64;
-        self.variance = self.stats[1]/(n - 1.0);
+        self.variance = self.stats[1] / (n - 1.0);
 
         self.variance
     }
@@ -464,11 +457,10 @@ fn median_select(data: &Vec<f64>, k: usize) -> Option<f64> {
     }
 }
 
-
 /*============================================ MAIN OPERATIONS : push, append, remove, pop ============================================= */
 impl SimpleAccumulator {
     /// Similar to `push` in vector `Vec`. When `fixed_capacity` flag is 'true' and ring buffer is full
-    /// rewrites the oldest element with the latest, following FIFO order. 
+    /// rewrites the oldest element with the latest, following FIFO order.
     pub fn push<T: ToPrimitive>(&mut self, value: T) {
         let y = T::to_f64(&value).unwrap();
         //let n = self.len as f64;
@@ -486,8 +478,7 @@ impl SimpleAccumulator {
         if self.fixed_capacity {
             if self.len == 0 {
                 self.last_write_position = 0;
-            }
-            else {
+            } else {
                 self.last_write_position = (self.last_write_position + 1) % self.capacity;
             }
 
@@ -496,12 +487,12 @@ impl SimpleAccumulator {
                 self.vec.push(y);
                 //Update number of elements
                 self.len += 1;
-            } 
+            }
             // Replacing first element by new element when ring buffer is full
             else {
                 self.vec[self.last_write_position] = y;
             }
-        } 
+        }
         // Using vector push in case fixed_capacity flag is 'false'
         else {
             self.vec.push(y);
@@ -514,8 +505,7 @@ impl SimpleAccumulator {
             // Update stats for the buffer
             if self.fixed_capacity {
                 self.calculate_all();
-            }
-            else {
+            } else {
                 self.update_fields_increase(T::to_f64(&value).unwrap());
             }
         }
@@ -556,11 +546,11 @@ impl SimpleAccumulator {
                 self.min_ = k;
             }
         }
-        
+
         let old_old_mean = self.mean;
         let old_variance = self.variance;
         let new_len = (self.len + temp_values.len()) as f64;
- 
+
         // Computing running stats online
         let new_r_total = (self.r_total + temp_values.len()) as f64;
         let ra = self.r_total as f64 * (self.r_variance + self.r_mean * self.r_mean);
@@ -568,7 +558,7 @@ impl SimpleAccumulator {
 
         let rb = (-1.0) * (self.r_mean * self.r_mean);
         self.r_variance = (ra + old_sq_sum) / new_r_total + rb;
-        self.r_total = new_r_total as usize;  
+        self.r_total = new_r_total as usize;
 
         if self.fixed_capacity {
             // Using vector append() when ring buffer is not full
@@ -577,7 +567,7 @@ impl SimpleAccumulator {
                 self.vec.append(&mut temp_values);
             }
             // Deleting at most temp_values.len() number of oldest values and replacing with the
-            // new ones obeying FIFO, since the buffer does not have space for vector append() 
+            // new ones obeying FIFO, since the buffer does not have space for vector append()
             else {
                 let temp_len = temp_values.len();
                 let mut start_fill_index = 0;
@@ -587,23 +577,22 @@ impl SimpleAccumulator {
 
                 // Pushing the values in temp while deleting oldest elements in buffer
                 // If temp is really long only the last 'capacity' number of elements
-                // will be filling the buffer  
+                // will be filling the buffer
 
-                if self.vec.len() > 0 {
+                if !self.vec.is_empty() {
                     for i in temp_values.iter().skip(start_fill_index) {
                         self.vec[self.last_write_position] = *i;
                         self.last_write_position = (self.last_write_position + 1) % self.capacity;
                     }
-                }
-                else {
+                } else {
                     for i in temp_values.iter().skip(start_fill_index) {
                         self.vec.push(*i);
                     }
                 }
-                
+
                 self.len = self.vec.len();
             }
-        } 
+        }
         // Using vector append when fixed_capacity is 'false'
         else {
             self.len += temp_values.len();
@@ -618,17 +607,22 @@ impl SimpleAccumulator {
                 let a = self.len as f64 * (self.variance + old_old_mean * old_old_mean);
                 let b = (-1.0) * (self.mean * self.mean);
                 self.variance = (a + old_sq_sum) / new_len + b;
-    
-                let old_old_cube_sum = self.stats[2] + old_old_mean.powi(3) + 3.0*old_old_mean*old_variance;
+
+                let old_old_cube_sum =
+                    self.stats[2] + old_old_mean.powi(3) + 3.0 * old_old_mean * old_variance;
                 let new_cube_sum = old_old_cube_sum + old_cube_sum;
-                self.skewness = (new_cube_sum - self.mean.powi(3) - 3.0*self.mean*self.variance)/(new_len*self.variance.powf(1.5));
-    
-                let old_old_fourth_power_sum = self.stats[3] + old_old_mean.powi(4) + 6.0 * old_old_mean.powi(2) *old_variance + 4.0*self.stats[2]*old_old_mean;
+                self.skewness =
+                    (new_cube_sum - self.mean.powi(3) - 3.0 * self.mean * self.variance)
+                        / (new_len * self.variance.powf(1.5));
+
+                let old_old_fourth_power_sum = self.stats[3]
+                    + old_old_mean.powi(4)
+                    + 6.0 * old_old_mean.powi(2) * old_variance
+                    + 4.0 * self.stats[2] * old_old_mean;
                 let new_fourth_power_sum = old_old_fourth_power_sum + old_fourth_power_sum;
-                self.kurtosis = new_fourth_power_sum/(new_len * self.variance.powi(2));
+                self.kurtosis = new_fourth_power_sum / (new_len * self.variance.powi(2));
                 self.calculate_approx_median();
-            }
-            else {
+            } else {
                 self.calculate_all();
             }
             self.calculate_bimodality();
@@ -637,7 +631,7 @@ impl SimpleAccumulator {
             self.stats[1] = self.variance * self.len as f64;
             self.stats[2] = self.skewness * self.variance.powf(1.5) * self.len as f64;
             self.stats[3] = self.kurtosis * self.variance.powi(2) * self.len as f64;
-        }   
+        }
     }
 
     /// Same as `remove` in `Vec` but returns `None` if index is out of bounds
@@ -646,7 +640,7 @@ impl SimpleAccumulator {
     pub fn remove(&mut self, index: usize) -> Option<f64> {
         if self.fixed_capacity {
             None
-        } 
+        }
         // When capacity is not fixed
         else {
             // Check if index to be removed is out of bounds
@@ -672,7 +666,7 @@ impl SimpleAccumulator {
     pub fn pop(&mut self) -> Option<f64> {
         if self.fixed_capacity {
             None
-        } 
+        }
         // When capacity is not fixed and accumulator is non-empty
         else if self.len > 0 {
             let k = self.vec.pop().unwrap();
@@ -685,7 +679,7 @@ impl SimpleAccumulator {
             self.len -= 1;
             Some(k)
         }
-        // Nothing to pop 
+        // Nothing to pop
         else {
             None
         }
@@ -697,13 +691,15 @@ impl SimpleAccumulator {
     fn update_fields_increase(&mut self, value: f64) {
         let n = self.len as f64;
         let delta = value - self.stats[0];
-        let delta_n = delta/n ;
-        let delta_n2 = delta_n * delta_n ;
+        let delta_n = delta / n;
+        let delta_n2 = delta_n * delta_n;
         let term1 = delta * delta_n * (n - 1.0);
-    
+
         self.stats[0] += delta_n;
-        self.stats[3] += term1*delta_n2*(3.0 + n*n - 3.0*n) + 6.0*delta_n2*self.stats[1] - 4.0*delta_n*self.stats[2];
-        self.stats[2] += term1*delta_n*(n - 2.0) - 3.0*delta_n*self.stats[1];
+        self.stats[3] += term1 * delta_n2 * (3.0 + n * n - 3.0 * n)
+            + 6.0 * delta_n2 * self.stats[1]
+            - 4.0 * delta_n * self.stats[2];
+        self.stats[2] += term1 * delta_n * (n - 2.0) - 3.0 * delta_n * self.stats[1];
         self.stats[1] += term1;
 
         // Calculating stats online from the updated stats vector
@@ -728,21 +724,23 @@ impl SimpleAccumulator {
     fn update_fields_decrease(&mut self, value: f64) {
         let n = self.len as f64;
         let delta = value - self.mean;
-        let delta_n = delta/n ;
-        let delta_n2 = delta_n * delta_n ;
+        let delta_n = delta / n;
+        let delta_n2 = delta_n * delta_n;
         let term1 = delta * delta_n * (n + 1.0);
 
         self.stats[0] -= delta_n;
-        self.stats[3] -= term1*delta_n2*(3.0 + n*n - 3.0*n) + 6.0*delta_n2*self.stats[1] - 4.0*delta_n*self.stats[2];
-        self.stats[2] -= term1*delta_n*(n - 2.0) - 3.0*delta_n*self.stats[1];
+        self.stats[3] -= term1 * delta_n2 * (3.0 + n * n - 3.0 * n)
+            + 6.0 * delta_n2 * self.stats[1]
+            - 4.0 * delta_n * self.stats[2];
+        self.stats[2] -= term1 * delta_n * (n - 2.0) - 3.0 * delta_n * self.stats[1];
         self.stats[1] -= term1;
 
-         // Calculating stats online from the updated stats vector
-         self.calculate_mean_online();
-         self.calculate_variance_online();
-         self.calculate_skewness_online();
-         self.calculate_kurtosis_online();
-         self.calculate_bimodality();
+        // Calculating stats online from the updated stats vector
+        self.calculate_mean_online();
+        self.calculate_variance_online();
+        self.calculate_skewness_online();
+        self.calculate_kurtosis_online();
+        self.calculate_bimodality();
     }
 
     #[inline]
@@ -794,8 +792,8 @@ mod tests {
                 fixed_capacity: false,
                 last_write_position: 0,
                 accumulate: true,
-                skewness:0.0,
-                kurtosis:1.64,
+                skewness: 0.0,
+                kurtosis: 1.64,
                 bimodality: 0.0,
             }
         );
@@ -806,6 +804,6 @@ mod tests {
         assert_float_eq!(y.median, 56.75, abs <= 0.01);
         assert_float_eq!(y.skewness, 0.23, abs <= 0.01);
         assert_float_eq!(y.kurtosis, 2.09, abs <= 0.01);
-        assert_float_eq!(y.bimodality, 0.03, abs <= 0.01);           
+        assert_float_eq!(y.bimodality, 0.03, abs <= 0.01);
     }
 }
