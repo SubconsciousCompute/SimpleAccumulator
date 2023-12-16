@@ -33,5 +33,3 @@ plotly = {version = "0.8.3"}
 [lib]
 name = "simple_accumulator"
 
-[[example]]
-name = "error_mean"
