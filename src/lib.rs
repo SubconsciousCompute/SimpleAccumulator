@@ -843,8 +843,8 @@ mod tests {
         );
 
         // Floating point arithmetic
-        assert_float_eq!(y.mean, 52.6, abs <= 0.01);
-        assert_float_eq!(y.variance, 935.365, abs <= 0.01);
+        assert_float_eq!(y.buffer_mean, 52.6, abs <= 0.01);
+        assert_float_eq!(y.buffer_variance, 935.365, abs <= 0.01);
         assert_float_eq!(y.median, 56.75, abs <= 0.01);
         assert_float_eq!(y.skewness, 0.23, abs <= 0.01);
         assert_float_eq!(y.kurtosis, 2.09, abs <= 0.01);
