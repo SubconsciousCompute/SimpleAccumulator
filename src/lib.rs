@@ -481,12 +481,17 @@ impl SimpleAccumulator {
         // Running stats, Number of elements seen is incremented irrespective of buffer properties
         // Calculation is online following Knuth's algorithm
         self.total += 1;
+        
         let delta = y - self.mean;
         let delta_n = delta / (self.total as f64);
         self.mean += delta_n;
+        
         let term1 = delta * delta_n * (self.total as f64 - 1.0);
         let stats1 = self.variance * (self.total as f64 - 2.0) + term1;
-        self.variance = stats1 / (self.total as f64 - 1.0);
+        
+        if self.total > 1 {
+            self.variance = stats1 / (self.total as f64 - 1.0);
+        }
 
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
@@ -838,8 +843,8 @@ mod tests {
         );
 
         // Floating point arithmetic
-        assert_float_eq!(y.buffer_mean, 52.6, abs <= 0.01);
-        assert_float_eq!(y.buffer_variance, 935.365, abs <= 0.01);
+        assert_float_eq!(y.mean, 52.6, abs <= 0.01);
+        assert_float_eq!(y.variance, 935.365, abs <= 0.01);
         assert_float_eq!(y.median, 56.75, abs <= 0.01);
         assert_float_eq!(y.skewness, 0.23, abs <= 0.01);
         assert_float_eq!(y.kurtosis, 2.09, abs <= 0.01);
