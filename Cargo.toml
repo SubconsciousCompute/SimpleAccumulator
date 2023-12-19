@@ -2,16 +2,14 @@
 name = "simple_accumulator"
 version = "0.5.1"
 edition = "2021"
-authors = ["sn99 <siddharthn.099@gmail.com>, purnatag <purnatag@gmail.com>"]
-description = "A simple accumulator"
-repository = "https://github.com/sn99/SimpleAccumulator"
+authors = ["Sid <siddharth.naithani@subcom.tech>, Purnata G <purnata.g@subcom.tech>"]
+description = "A simple accumulator for incremental statistical computations"
+repository = "https://github.com/SubconsciousCompute/SimpleAccumulator"
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/sn99/SimpleAccumulator"
-keywords = ["accumulator", "stats"]
+homepage = "https://github.com/SubconsciousCompute/SimpleAccumulator"
+keywords = ["accumulator", "statistics", "online-algorithms"]
 documentation = "https://docs.rs/simple_accumulator"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 num = "0.4.1"
@@ -27,3 +25,11 @@ opt-level = 3
 ordered-float = "4.2.0"
 plotly = {version = "0.8.4"}
 float_eq = { version = "1", features = ["derive"] }
+
+[features]
+serde = ["dep:serde"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
