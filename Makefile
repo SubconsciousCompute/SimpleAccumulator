@@ -1,6 +1,5 @@
 all:
-	cargo b --all
-	cargo b --examples
+	cargo b --all-targets
 	
 test:
 	cargo test 
