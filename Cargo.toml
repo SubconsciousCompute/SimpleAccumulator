@@ -14,7 +14,7 @@ documentation = "https://docs.rs/simple_accumulator"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num = "0.4.0"
+num = "0.4.1"
 rand = "0.8.5"
 serde = { version = "1.0.193", features = ["derive"] }
 
@@ -28,8 +28,8 @@ codegen-units = 1
 opt-level = 3
 
 [dev-dependencies]
-ordered-float = "3.7.0"
-plotly = {version = "0.8.3"}
+ordered-float = "4.2.0"
+plotly = {version = "0.8.4"}
 
 [lib]
 name = "simple_accumulator"
