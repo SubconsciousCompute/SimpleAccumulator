@@ -1,4 +1,5 @@
-//! Store and update stats related to our data array without iterating again and again
+//! A library for incremental statistical computation inspired by
+//! [Boost.Accumulators](https://www.boost.org/doc/libs/1_84_0/doc/html/accumulators.html).
 //!
 //! ```rust
 //!     let k = [1, 2, 3, 4];
@@ -17,18 +18,13 @@
 //!     println!("{:#?}", x);
 //! ```
 //!
-//! Set field `accumulate` to `false` to not update the value, you will need to run `calculate_all` to
-//! get the updated field values
+//! Set field `accumulate` to `false` to disable online update for statistiscs, you 
+//! will need to run `calculate_all` to get the updated statitics.
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
 
-#![allow(suspicious_double_ref_op)]
-//pub use self::SimpleAccumulator;
-
 use num::ToPrimitive;
 use std::cmp::Ordering;
-//use float_eq::AssertFloatEq;
-// use std::collections::HashMap;
 
 /// Our main data struct
 #[derive(Clone, Default, Debug, PartialEq)]
