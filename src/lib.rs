@@ -135,6 +135,12 @@ impl SimpleAccumulator {
         self.vec.len()
     }
 
+    /// Is empty.
+    #[inline]
+    pub fn is_empty(&self) -> usize {
+        self.vec.is_empty()
+    }
+
     /// Get the capacity of underlying container storing data.
     #[inline]
     pub fn capacity(&self) -> usize {
@@ -220,7 +226,7 @@ impl SimpleAccumulator {
     }
 
     pub fn calculate_all(&mut self) {
-        if self.len() == 0 {
+        if self.is_empty() {
             return;
         }
         self.calculate_mean();
@@ -424,7 +430,7 @@ impl SimpleAccumulator {
 
         // we just change the already held value and keep on rewriting it
         if self.fixed_capacity {
-            if self.len() == 0 {
+            if self.is_empty() {
                 self.last_write_position = 0;
             } else {
                 self.last_write_position = (self.last_write_position + 1) % self.capacity();
