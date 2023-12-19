@@ -6,6 +6,12 @@ and this project adheres to [Semantic
 Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed #10. Custom implement for `Default`.
+- Fixed #13
+
+### Added 
+- `serde` support for SimpleAccumulator. Enable it using features `serde`
 
 ## [0.5.1] -2023-12-19
 ### Fixed

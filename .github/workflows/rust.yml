@@ -13,17 +13,17 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Build
       run: |
-        cargo clippy
-        cargo build --verbose
+        cargo clippy --no-deps
+        cargo build --all-targets --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Check semver
+      uses: obi1kenobi/cargo-semver-checks-action@v2
 
   upload:
     runs-on: ubuntu-latest
