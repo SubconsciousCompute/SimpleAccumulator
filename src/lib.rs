@@ -18,7 +18,7 @@
 //!     println!("{:#?}", x);
 //! ```
 //!
-//! Set field `accumulate` to `false` to disable online update for statistiscs, you 
+//! Set field `accumulate` to `false` to disable online update for statistiscs, you
 //! will need to run `calculate_all` to get the updated statitics.
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
@@ -27,10 +27,10 @@ use std::cmp::Ordering;
 
 use num::ToPrimitive;
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Our main data struct
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SimpleAccumulator {
     /// Vec to store the data
@@ -86,6 +86,12 @@ pub struct SimpleAccumulator {
     pub bimodality: f64,
 }
 
+impl Default for SimpleAccumulator {
+    fn default() -> Self {
+        Self::new::<f64>(&[], true)
+    }
+}
+
 impl SimpleAccumulator {
     /// Input to this function can be of generic type `&[T]` but will be converted to `Vec<f64>`. Panic on values that
     /// cannot be converted.
@@ -113,7 +119,6 @@ impl SimpleAccumulator {
             max: 0.0,
             max_: f64::NEG_INFINITY,
             median: 0.0,
-            // mode: 0.0,
             len: 0,
             capacity: 0,
             fixed_capacity: false,
@@ -139,7 +144,6 @@ impl SimpleAccumulator {
             k.mean = k.buffer_mean;
             k.variance = k.buffer_variance;
             k.total = k.len;
-            // k.calculate_mode();
         }
         k
     }
@@ -197,7 +201,6 @@ impl SimpleAccumulator {
             max: 0.0,
             max_: f64::NEG_INFINITY,
             median: 0.0,
-            // mode: 0.0,
             len: 0,
             capacity,
             fixed_capacity: true,
@@ -223,7 +226,6 @@ impl SimpleAccumulator {
             k.mean = k.buffer_mean;
             k.variance = k.buffer_variance;
             k.total = k.len;
-            // k.calculate_mode();
         }
         k
     }
@@ -403,23 +405,6 @@ impl SimpleAccumulator {
     pub fn calculate_approx_median(&mut self) {
         self.median = (self.max + self.min + 2.0 * self.buffer_mean) / 4.0;
     }
-
-    // Need a better way to find mode
-    /*
-    fn calculate_mode(&mut self){
-        let frequencies = self.vec.iter().fold(HashMap::new(), |mut freqs, value| {
-            *freqs.entry(value).or_insert(0) += 1;
-            freqs
-        });
-
-        let mode = frequencies
-            .into_iter()
-            .max_by_key(|&(_, count)| count)
-            .map(|(value, _)| *value).unwrap();
-
-        self.mode = mode;
-    }
-    */
 }
 
 /*========================================== Helper Functions for Median calculation ================================================================ */
@@ -855,41 +840,3 @@ mod tests {
     }
 }
 
-#[cfg(examples)]
-mod examples {
-    use super::SimpleAccumulator;
-    use plotly::common::Mode;
-    use plotly::{Plot, Scatter};
-    use rand::Rng;
-
-    fn online_offline_means_converge() {
-        let mut acc = SimpleAccumulator::new::<f64>(&[], true);
-        let mut error_mean: Vec<f64> = Vec::new();
-        let mut len_per_error_mean: Vec<f64> = Vec::new();
-        let base: i32 = 10;
-        let multiplier = base.pow(5) as f64;
-
-        println!("Waiting to plot the error data...");
-        for _i in 0..1000 {
-            for _j in 0..1000 {
-                let data = rand::thread_rng().gen::<f64>();
-                acc.push(data);
-            }
-            let mean = acc.buffer_mean;
-            let offline_mean = acc.calculate_mean();
-            let error_diff = (offline_mean - mean) / acc.len as f64;
-            error_mean.push(error_diff * multiplier);
-            len_per_error_mean.push(acc.len as f64);
-        }
-
-        // Plot the error data
-        let trace = Scatter::new(len_per_error_mean, error_mean)
-            .name("trace")
-            .mode(Mode::LinesMarkers);
-        let mut plot = Plot::new();
-        plot.add_trace(trace);
-
-        plot.show();
-        println!("{}", plot.to_inline_html(Some("error_mean_scatter_plot")));
-    }
-}
