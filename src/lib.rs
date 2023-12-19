@@ -23,15 +23,20 @@
 //!
 //! If `with_fixed_capacity` is used then we rewrite the current buffer in FIFO order
 
-use num::ToPrimitive;
 use std::cmp::Ordering;
+
+use num::ToPrimitive;
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 /// Our main data struct
 #[derive(Clone, Default, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SimpleAccumulator {
     /// Vec to store the data
     pub vec: Vec<f64>,
     /// Vec to privately store mean and three moment differences
+    #[cfg_attr(serde, serde(skip))]
     stats: Vec<f64>,
     /// Running mean
     pub mean: f64,
@@ -42,20 +47,20 @@ pub struct SimpleAccumulator {
     pub total: usize,
     /// Average/mean of the accumulator data
     /// Same as running mean when capacity is not fixed
+    #[cfg_attr(serde, serde(skip))]
     pub(crate) buffer_mean: f64,
     /// Variance of the accumulator data, uses `N` not `N-1`
+    #[cfg_attr(serde, serde(skip))]
     pub(crate) buffer_variance: f64,
-    /*
-    /// (Standard deviation)^2 = variance
-    pub standard_deviation: f64,
-    */
     /// Minimum element in the Accumulator
     pub min: f64,
     /// 2nd lowest value - To help calculate approx min
+    #[cfg_attr(serde, serde(skip))]
     min_: f64,
     /// Maximum element in the Accumulator
     pub max: f64,
     /// 2nd highest value - To help calculate approx max
+    #[cfg_attr(serde, serde(skip))]
     max_: f64,
     /// Middle element. We use a rough estimate when using `accumulate=true`
     pub median: f64,
@@ -64,18 +69,20 @@ pub struct SimpleAccumulator {
     pub len: usize,
     /// Capacity available before it has to reallocate more, doesn't reallocate more if `with_fixed_capacity`
     /// is used - instead rewrites previous places in FIFO order
-    pub capacity: usize,
+    #[cfg_attr(serde, serde(skip))]
+    capacity: usize,
     /// Can only `push` if used, for `pop` and `remove` we return `None`
     pub fixed_capacity: bool,
     /// Gives an idea about last filled position, doesn't get updated if `accumulate=true`
-    pub last_write_position: usize,
+    #[cfg_attr(serde, serde(skip))]
+    last_write_position: usize,
     /// Flag to set whether the fields update or not after a change(push, remove, pop)
     pub accumulate: bool,
     /// Measure of bias in the population. Population follows a Poisson distribution.
     pub skewness: f64,
-    // Measure of the tail length of the distribution
+    /// Measure of the tail length of the distribution
     pub kurtosis: f64,
-    // Measure of two peaks existing in the distribution
+    /// Measure of two peaks existing in the distribution
     pub bimodality: f64,
 }
 

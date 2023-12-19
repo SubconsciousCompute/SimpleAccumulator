@@ -2,7 +2,9 @@
 name = "simple_accumulator"
 version = "0.5.1"
 edition = "2021"
-authors = ["Sid <siddharth.naithani@subcom.tech>, Purnata G <purnata.g@subcom.tech>"]
+authors = [
+  "Sid <siddharth.naithani@subcom.tech>, Purnata G <purnata.g@subcom.tech>",
+]
 description = "A simple accumulator for incremental statistical computations"
 repository = "https://github.com/SubconsciousCompute/SimpleAccumulator"
 license = "MIT"
@@ -14,7 +16,7 @@ documentation = "https://docs.rs/simple_accumulator"
 [dependencies]
 num = "0.4.1"
 rand = "0.8.5"
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1", features = ["derive"], optional = true }
 
 [profile.release]
 lto = true
@@ -23,7 +25,7 @@ opt-level = 3
 
 [dev-dependencies]
 ordered-float = "4.2.0"
-plotly = {version = "0.8.4"}
+plotly = { version = "0.8.4" }
 float_eq = { version = "1", features = ["derive"] }
 
 [features]
