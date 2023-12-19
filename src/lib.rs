@@ -137,7 +137,7 @@ impl SimpleAccumulator {
 
     /// Is empty.
     #[inline]
-    pub fn is_empty(&self) -> usize {
+    pub fn is_empty(&self) -> bool {
         self.vec.is_empty()
     }
 
@@ -627,9 +627,8 @@ impl SimpleAccumulator {
             None
         }
         // When capacity is not fixed and accumulator is non-empty
-        else if self.len() > 0 {
+        else if !self.is_empty() {
             let k = self.vec.pop().unwrap();
-
             if self.accumulate {
                 self.update_fields_decrease(k);
                 self.min_max_update_when_removed(k);
