@@ -1,4 +1,4 @@
-use super::SimpleAccumulator;
+use simple_accumulator::SimpleAccumulator;
 use plotly::common::Mode;
 use plotly::{Plot, Scatter};
 use rand::Rng;
@@ -19,9 +19,9 @@ fn main() {
         }
         let mean = acc.buffer_mean;
         let offline_mean = acc.calculate_mean();
-        let error_diff = (offline_mean - mean) / acc.len as f64;
+        let error_diff = (offline_mean - mean) / acc.len() as f64;
         error_mean.push(error_diff * multiplier);
-        len_per_error_mean.push(acc.len as f64);
+        len_per_error_mean.push(acc.len() as f64);
     }
 
     // Plot the error data
