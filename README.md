@@ -4,7 +4,9 @@
 [![docs.rs](https://img.shields.io/docsrs/simple_accumulator)](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
 [![Crates.io](https://img.shields.io/crates/d/simple_accumulator)](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
 
-Store and update stats related to our data array without iterating again and again.
+This crate is inspired by [Boost::Accumulator]( https://www.boost.org/doc/libs/1_84_0/doc/html/accumulators.html)
+which is both a library for incremental statistical computation as well as an extensible framework for incremental calculation in general. 
+_This is a work in progress but usable. Please write integration tests before using it in production._ 
 
 Read [Documentation](https://docs.rs/simple_accumulator/latest/simple_accumulator/struct.SimpleAccumulator.html)
 
