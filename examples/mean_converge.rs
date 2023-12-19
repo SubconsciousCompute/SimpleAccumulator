@@ -1,7 +1,7 @@
-use simple_accumulator::SimpleAccumulator;
 use plotly::common::Mode;
 use plotly::{Plot, Scatter};
 use rand::Rng;
+use simple_accumulator::SimpleAccumulator;
 
 // fn online_offline_means_converge() {
 fn main() {
