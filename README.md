@@ -22,7 +22,7 @@ fn main() {
 
     // Set field `accumulate` to `false` to not update the field values when
     // changed, you will need to call `calculate_all` to get updated values.
-    let mut x = SimpleAccumulator::new(&k, true);
+    let mut x = SimpleAccumulator::new(&k);
 
     println!("{:#?}", x);
     
