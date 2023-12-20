@@ -9,6 +9,11 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 - Fixed #10. Custom implement for `Default`.
 - Fixed #13
+- Fixed #19. Use crate watermill.
+
+### Breaking Changes
+- Removes `pop`, `remove` API.
+- `new` arguments have changed. By default, statistics are computed.
 
 ### Added 
 - `serde` support for SimpleAccumulator. Enable it using features `serde`
