@@ -17,16 +17,16 @@ fn test_append_in_fixed_capacity() {
     acc.append(&copy);
 
     println!("{acc:?}");
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![2.2, 3.3, 4.4]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![2.2, 3.3, 4.4]);
 
     acc.append(&vec![7, 8]);
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![7.0, 8.0, 4.4]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![7.0, 8.0, 4.4]);
 
     acc.append(&vec![1, 1, 2, 2]);
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![2.0, 2.0, 1.0]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![2.0, 2.0, 1.0]);
 }
 
 #[test]
@@ -49,11 +49,11 @@ fn test_append_in_fixed_capacity_random() {
     // and push values into it.
     acc.append(&copy);
 
-    assert_eq!(acc.vec.len(), CAPACITY);
+    assert_eq!(acc.len(), CAPACITY);
 
     // The values in the accumulator should be the same as lest recent (CAPACITY )
     // values pushed to it. They may not be in the same order.
-    let a: HashSet<i32> = acc.vec.iter().map(|&x| x as i32).collect();
+    let a: HashSet<i32> = acc.data.iter().map(|&x| x as i32).collect();
     let b: HashSet<i32> = data.into_iter().rev().take(CAPACITY).collect();
     println!("{a:?}\n{b:?}");
     assert!(a.len() <= CAPACITY); // duplicates

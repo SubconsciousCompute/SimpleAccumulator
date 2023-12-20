@@ -19,16 +19,16 @@ fn test_sanity_push_in_fixed_capacity() {
         acc.push(v);
     }
     println!("{acc:?}");
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![3.3, 4.4, 2.2]);
 
     acc.push(5.5);
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![3.3, 4.4, 5.5]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![3.3, 4.4, 5.5]);
 
     acc.push(6.6);
-    assert_eq!(acc.vec.len(), CAPACITY);
-    assert_eq!(acc.vec, vec![6.6, 4.4, 5.5]);
+    assert_eq!(acc.len(), CAPACITY);
+    assert_eq!(acc.data, vec![6.6, 4.4, 5.5]);
 }
 
 #[test]
@@ -53,11 +53,11 @@ fn test_only_n_recent_values() {
         acc.push(v);
     }
 
-    assert_eq!(acc.vec.len(), CAPACITY);
+    assert_eq!(acc.len(), CAPACITY);
 
     // The values in the accumulator should be the same as lest recent (CAPACITY )
     // values pushed to it. They may not be in the same order.
-    let a: HashSet<i32> = acc.vec.iter().map(|&x| x as i32).collect();
+    let a: HashSet<i32> = acc.data.iter().map(|&x| x as i32).collect();
     let b: HashSet<i32> = data.into_iter().rev().take(CAPACITY).collect();
     println!("{a:?}\n{b:?}");
     assert!(a.len() <= CAPACITY); // duplicates

@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SimpleAccumulator {
     /// Vec to store the data
-    pub vec: Vec<f64>,
+    pub data: Vec<f64>,
     /// Vec to privately store mean and three moment differences
     #[cfg_attr(serde, serde(skip))]
     stats: Vec<f64>,
@@ -93,7 +93,7 @@ impl SimpleAccumulator {
     ///
     /// Calls the function `calculate_all` to computes the values of all statistical measures and variables.
     pub fn new<T: ToPrimitive>(slice: &[T], flag: bool) -> Self {
-        let vec: Vec<f64> = slice
+        let data: Vec<f64> = slice
             .iter()
             .map(|x| T::to_f64(x).expect("Could not convert to f64"))
             .collect();
@@ -101,7 +101,7 @@ impl SimpleAccumulator {
         let stats: Vec<f64> = vec![0.0; 4];
 
         let mut k = SimpleAccumulator {
-            vec,
+            data,
             stats,
             total: slice.len(),
             min_: f64::INFINITY,
@@ -112,7 +112,7 @@ impl SimpleAccumulator {
             ..Default::default()
         };
 
-        if !k.vec.is_empty() {
+        if !k.is_empty() {
             // Mean and variance is computed to initialise the running values
             // even when accumulate flag is off
             if flag {
@@ -132,19 +132,19 @@ impl SimpleAccumulator {
     /// Get the length of underlying container storing data.
     #[inline]
     pub fn len(&self) -> usize {
-        self.vec.len()
+        self.data.len()
     }
 
     /// Is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.vec.is_empty()
+        self.data.is_empty()
     }
 
     /// Get the capacity of underlying container storing data.
     #[inline]
     pub fn capacity(&self) -> usize {
-        self.vec.capacity()
+        self.data.capacity()
     }
 
     /// Can be made of any type `&[T]` but will be converted to `Vec<f64>`, panics on values that
@@ -161,33 +161,33 @@ impl SimpleAccumulator {
     ///         acc.push(v);
     ///     }
     ///     println!("{acc:?}");
-    ///     assert_eq!(acc.vec.len(), CAPACITY);
-    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 2.2]);
+    ///     assert_eq!(acc.len(), CAPACITY);
+    ///     assert_eq!(acc.data, vec![3.3, 4.4, 2.2]);
     ///
     ///     acc.push(5.5);
-    ///     assert_eq!(acc.vec.len(), CAPACITY);
-    ///     assert_eq!(acc.vec, vec![3.3, 4.4, 5.5]);
+    ///     assert_eq!(acc.len(), CAPACITY);
+    ///     assert_eq!(acc.data, vec![3.3, 4.4, 5.5]);
     ///
     ///     acc.push(6.6);
-    ///     assert_eq!(acc.vec.len(), CAPACITY);
-    ///     assert_eq!(acc.vec, vec![6.6, 4.4, 5.5]);
+    ///     assert_eq!(acc.len(), CAPACITY);
+    ///     assert_eq!(acc.data, vec![6.6, 4.4, 5.5]);
     pub fn with_fixed_capacity<T: ToPrimitive>(slice: &[T], capacity: usize, flag: bool) -> Self {
         assert!(
             slice.len() <= capacity,
             "Capacity less than length of given slice"
         );
 
-        let mut vec = if slice.is_empty() {
+        let mut data = if slice.is_empty() {
             Vec::with_capacity(capacity)
         } else {
             slice.iter().map(|x| T::to_f64(x).unwrap()).collect()
         };
-        vec.reserve_exact(capacity);
+        data.reserve_exact(capacity);
 
         let stats: Vec<f64> = vec![0.0; 4];
 
         let mut k = SimpleAccumulator {
-            vec,
+            data,
             stats,
             mean: 0.0,
             variance: 0.0,
@@ -207,8 +207,8 @@ impl SimpleAccumulator {
             bimodality: 0.0,
         };
 
-        if !k.vec.is_empty() {
-            k.last_write_position = k.vec.len() - 1;
+        if !k.is_empty() {
+            k.last_write_position = k.len() - 1;
             // Mean and variance is computed to initialise the running values
             // even when accumulate flag is off
             if flag {
@@ -248,7 +248,7 @@ impl SimpleAccumulator {
         let std_dev = self.buffer_variance.sqrt();
 
         self.skewness = self
-            .vec
+            .data
             .iter()
             .map(|&value| {
                 let diff = (value - self.buffer_mean) / std_dev;
@@ -276,7 +276,7 @@ impl SimpleAccumulator {
         let std_dev4 = self.buffer_variance * self.buffer_variance;
 
         self.stats[3] = self
-            .vec
+            .data
             .iter()
             .map(|&value| {
                 let diff = value - self.buffer_mean;
@@ -306,7 +306,7 @@ impl SimpleAccumulator {
     /// Calculate mean and return it
     /// Offline version
     pub fn calculate_mean(&mut self) -> f64 {
-        self.buffer_mean = self.vec.iter().sum::<f64>() / self.len() as f64;
+        self.buffer_mean = self.data.iter().sum::<f64>() / self.len() as f64;
         self.stats[0] = self.buffer_mean;
         self.buffer_mean
     }
@@ -322,7 +322,7 @@ impl SimpleAccumulator {
     /// Offline version
     fn calculate_variance(&mut self) -> f64 {
         self.stats[1] = self
-            .vec
+            .data
             .iter()
             .map(|&value| {
                 let diff = self.buffer_mean - value;
@@ -344,8 +344,8 @@ impl SimpleAccumulator {
 
     /// Calculate minimum(s) of values and return min
     fn calculate_min(&mut self) -> f64 {
-        self.min = self.vec[0];
-        for k in &self.vec[1..] {
+        self.min = self.data[0];
+        for k in &self.data[1..] {
             if k < &self.min {
                 self.min_ = self.min;
                 self.min = *k;
@@ -358,8 +358,8 @@ impl SimpleAccumulator {
 
     /// Calculate maximum(s) of values and return max
     fn calculate_max(&mut self) -> f64 {
-        self.max = self.vec[0];
-        for k in &self.vec[1..] {
+        self.max = self.data[0];
+        for k in &self.data[1..] {
             if k > &self.max {
                 self.max_ = self.max;
                 self.max = *k;
@@ -377,15 +377,15 @@ impl SimpleAccumulator {
     fn calculate_median(&mut self) -> f64 {
         self.median = match self.len() {
             even if even % 2 == 0 => {
-                let fst_med = median_select(&self.vec, (even / 2) - 1);
-                let snd_med = median_select(&self.vec, even / 2);
+                let fst_med = median_select(&self.data, (even / 2) - 1);
+                let snd_med = median_select(&self.data, even / 2);
 
                 match (fst_med, snd_med) {
                     (Some(fst), Some(snd)) => Some((fst + snd) / 2.0),
                     _ => None,
                 }
             }
-            odd => median_select(&self.vec, odd / 2),
+            odd => median_select(&self.data, odd / 2),
         }
         .unwrap();
 
@@ -438,16 +438,16 @@ impl SimpleAccumulator {
 
             // Using vector push when ring buffer is not full
             if self.len() < self.capacity() {
-                self.vec.push(y);
+                self.data.push(y);
             }
             // Replacing first element by new element when ring buffer is full
             else {
-                self.vec[self.last_write_position] = y;
+                self.data[self.last_write_position] = y;
             }
         }
         // Using vector push in case fixed_capacity flag is 'false'
         else {
-            self.vec.push(y);
+            self.data.push(y);
         }
 
         if self.accumulate {
@@ -525,7 +525,7 @@ impl SimpleAccumulator {
         if self.fixed_capacity {
             // Using vector append() when ring buffer is not full
             if temp_values.len() <= self.capacity() - self.len() {
-                self.vec.append(&mut temp_values);
+                self.data.append(&mut temp_values);
             }
             // Deleting at most temp_values.len() number of oldest values and replacing with the
             // new ones obeying FIFO, since the buffer does not have space for vector append()
@@ -540,20 +540,20 @@ impl SimpleAccumulator {
                 // If temp is really long only the last 'capacity' number of elements
                 // will be filling the buffer
 
-                if !self.vec.is_empty() {
+                if !self.data.is_empty() {
                     for i in temp_values.iter().skip(start_fill_index) {
-                        self.vec[self.last_write_position] = *i;
+                        self.data[self.last_write_position] = *i;
                         self.last_write_position = (self.last_write_position + 1) % self.capacity();
                     }
                 } else {
                     for i in temp_values.iter().skip(start_fill_index) {
-                        self.vec.push(*i);
+                        self.data.push(*i);
                     }
                 }
             }
         } else {
             // Using vector append when fixed_capacity is 'false'
-            self.vec.append(&mut temp_values);
+            self.data.append(&mut temp_values);
         }
 
         // Computing buffer stats online when capacity is not fixed
@@ -607,7 +607,7 @@ impl SimpleAccumulator {
                 return None;
             }
 
-            let k = self.vec.remove(index);
+            let k = self.data.remove(index);
 
             if self.accumulate {
                 self.update_fields_decrease(k);
@@ -628,7 +628,7 @@ impl SimpleAccumulator {
         }
         // When capacity is not fixed and accumulator is non-empty
         else if !self.is_empty() {
-            let k = self.vec.pop().unwrap();
+            let k = self.data.pop().unwrap();
             if self.accumulate {
                 self.update_fields_decrease(k);
                 self.min_max_update_when_removed(k);
