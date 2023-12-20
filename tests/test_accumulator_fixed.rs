@@ -64,3 +64,29 @@ fn test_only_n_recent_values() {
     assert_eq!(a.intersection(&b).count(), a.len());
     assert_eq!(a.difference(&b).count(), 0); // both set must be equal.
 }
+
+/// Compare with third-party implementation.
+#[test]
+fn test_sanity() {
+    use float_eq::assert_float_eq;
+    use watermill::quantile::Quantile;
+    use watermill::stats::Univariate;
+    use watermill::variance::Variance;
+
+    let mut acc = SimpleAccumulator::with_fixed_capacity::<f64>(&vec![], 10, true);
+    let mut running_median: Quantile<f64> = Quantile::new(0.5f64).unwrap();
+    let mut running_var: Variance<f64> = Variance::default();
+
+    let total = 1000;
+    for _i in 0..total {
+        let a = 100.0 * (rand::random::<f64>() - 0.5);
+        acc.push(a);
+        running_median.update(a);
+        running_var.update(a);
+        println!("{a}");
+    }
+    println!("{acc:#?}");
+    assert_eq!(acc.total, total);
+    assert_float_eq!(acc.variance, running_var.get(), ulps_all <= 4);
+    assert_float_eq!(acc.median, running_median.get(), ulps_all <= 4);
+}

@@ -20,6 +20,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 ordered-float = "4.2.0"
 plotly = { version = "0.8.4" }
 float_eq = { version = "1", features = ["derive"] }
+watermill = "0.1.1"
 
 [features]
 serde = ["dep:serde"]
