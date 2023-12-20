@@ -2,7 +2,7 @@
 name = "simple_accumulator"
 version = "0.6.0"
 edition = "2021"
-authors = ["Sid <siddharth.naithani@subcom.tech>, Purnata G <purnata.g@subcom.tech>"]
+authors = ["Sid <siddharth.naithani@subcom.tech>", "Purnata G <purnata.g@subcom.tech>", "Dilawar Singh <dilawar@subcom.tech>"]
 description = "A simple accumulator for incremental statistical computations"
 repository = "https://github.com/SubconsciousCompute/SimpleAccumulator"
 license = "MIT"
