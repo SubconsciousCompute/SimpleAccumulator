@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 
+use float_eq::assert_float_eq;
 use rand::distributions::Uniform;
 use rand::Rng;
 
@@ -64,10 +65,25 @@ fn test_only_n_recent_values() {
     assert_eq!(a.difference(&b).count(), 0); // both set must be equal.
 }
 
-/// Compare with third-party implementation.
 #[test]
 fn test_sanity() {
-    use float_eq::assert_float_eq;
+    let mut acc = SimpleAccumulator::with_fixed_capacity(&vec![], 3);
+    acc.push(1.0);
+    acc.push(2.0);
+    assert_float_eq!(acc.mean(), 1.5, abs_all <= 1e-4);
+    acc.push(3.0);
+    assert_float_eq!(acc.mean(), 2.0, abs_all <= 1e-4);
+    acc.push(2.0);
+    assert_float_eq!(acc.mean(), 2.0, abs_all <= 1e-4);
+    acc.push(2.0);
+    assert_float_eq!(acc.mean(), 2.0, abs_all <= 1e-4);
+    acc.push(10.0);
+    assert_float_eq!(acc.mean(), 20.0 / 6.0, abs_all <= 1e-4);
+}
+
+/// Compare with third-party implementation.
+#[test]
+fn test_sanity_with_random_values() {
     use watermill::quantile::Quantile;
     use watermill::stats::Univariate;
     use watermill::variance::Variance;
