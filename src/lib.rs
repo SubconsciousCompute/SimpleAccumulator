@@ -16,6 +16,8 @@
 use std::collections::VecDeque;
 use std::ops::{AddAssign, SubAssign};
 
+use histogram::Histogram;
+
 use num_traits::{cast::FromPrimitive, float::Float};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -68,6 +70,9 @@ pub struct SimpleAccumulator<
 
     /// Can only `push` if used, for `pop` and `remove` we return `None`
     fixed_capacity: bool,
+
+    /// Histogram
+    histogram: Option<Histogram>,
 }
 
 impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
@@ -92,6 +97,31 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
             k.push(v);
         }
         k
+    }
+
+    /// Initialize a histogram The configuration of a histogram which determines the bucketing
+    /// strategy and therefore the relative error and memory utilization of a histogram.
+    ///
+    /// `grouping_power` - controls the number of buckets that are used to span consecutive powers
+    /// of two. Lower values result in less memory usage since fewer buckets will be created.
+    /// However, this will result in larger relative error as each bucket represents a wider range
+    /// of values.  
+    ///
+    /// `max_value_power` - controls the largest value which can be stored in the histogram.
+    /// 2^(max_value_power) - 1 is the inclusive upper bound for the representable range of values.
+    ///
+    /// Reference: <https://docs.rs/histogram/latest/histogram/struct.Config.html>
+    pub fn init_histogram(&mut self, grouping_power: u8, max_value_power: u8) {
+        if self.histogram.is_some() {
+            tracing::info!("Histogram is already initialize. Reinitializing...");
+        }
+        self.histogram = match histogram::Histogram::new(grouping_power, max_value_power) {
+            Ok(hist) => Some(hist),
+            Err(e) => {
+                tracing::warn!("Failed to initialize histogram: {e}");
+                None
+            }
+        }
     }
 
     /// Get the length of underlying container storing data.
@@ -180,6 +210,19 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
             }
         }
         self.data.push_back(y);
+
+        if let Some(histogram) = self.histogram.as_mut() {
+            if let Some(v) = y.to_u64() {
+                if let Err(e) = histogram.increment(v) {
+                    debug_assert!(false, "Failed to increment the histogram: {e}");
+                }
+            }
+        }
+    }
+
+    /// Return reference to the inner Histogram
+    pub fn histogram(&self) -> Option<&histogram::Histogram> {
+        self.histogram.as_ref()
     }
 
     /// Function similar to `append` in `Vec`, rewrites in FIFO order if `fixed_capacity` is 'true'.
