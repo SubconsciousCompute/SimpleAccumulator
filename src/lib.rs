@@ -115,6 +115,10 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
     /// Reference: <https://docs.rs/histogram/latest/histogram/struct.Config.html>
     #[cfg(feature = "histogram")]
     pub fn init_histogram(&mut self, grouping_power: u8, max_value_power: u8) {
+        assert!(
+            grouping_power < max_value_power,
+            "max_value_power must be > grouping_power"
+        );
         if self.histogram.is_some() {
             tracing::info!("Histogram is already initialize. Reinitializing...");
         }
