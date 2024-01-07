@@ -16,6 +16,7 @@
 use std::collections::VecDeque;
 use std::ops::{AddAssign, SubAssign};
 
+#[cfg(feature = "histogram")]
 use histogram::Histogram;
 
 use num_traits::{cast::FromPrimitive, float::Float};
@@ -72,6 +73,7 @@ pub struct SimpleAccumulator<
     fixed_capacity: bool,
 
     /// Histogram
+    #[cfg(feature = "histogram")]
     histogram: Option<Histogram>,
 }
 
@@ -111,6 +113,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
     /// 2^(max_value_power) - 1 is the inclusive upper bound for the representable range of values.
     ///
     /// Reference: <https://docs.rs/histogram/latest/histogram/struct.Config.html>
+    #[cfg(feature = "histogram")]
     pub fn init_histogram(&mut self, grouping_power: u8, max_value_power: u8) {
         if self.histogram.is_some() {
             tracing::info!("Histogram is already initialize. Reinitializing...");
@@ -221,6 +224,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
     }
 
     /// Return reference to the inner Histogram
+    #[cfg(feature = "histogram")]
     pub fn histogram(&self) -> Option<&histogram::Histogram> {
         self.histogram.as_ref()
     }

@@ -2,7 +2,11 @@
 name = "simple_accumulator"
 version = "0.6.0"
 edition = "2021"
-authors = ["Sid <siddharth.naithani@subcom.tech>", "Purnata G <purnata.g@subcom.tech>", "Dilawar Singh <dilawar@subcom.tech>"]
+authors = [
+  "Sid <siddharth.naithani@subcom.tech>",
+  "Purnata <purnata.g@subcom.tech>",
+  "Dilawar <dilawar@subcom.tech>",
+]
 description = "A simple accumulator for incremental statistical computations"
 repository = "https://github.com/SubconsciousCompute/SimpleAccumulator"
 license = "MIT"
@@ -12,12 +16,12 @@ keywords = ["accumulator", "statistics", "online-algorithms"]
 documentation = "https://docs.rs/simple_accumulator"
 
 [dependencies]
-histogram = "0.8.3"
 num-traits = "0.2.17"
 rand = "0.8.5"
 serde = { version = "1", features = ["derive"], optional = true }
 tracing = "0.1.40"
 watermill = "0.1.1"
+histogram = { version = "0.8.3", optional = true }
 
 
 [dev-dependencies]
@@ -28,7 +32,9 @@ watermill = "0.1.1"
 tracing-test = "0.2.4"
 
 [features]
+default = ["histogram"]
 serde = ["dep:serde"]
+histogram = ["dep:histogram"]
 
 [profile.release]
 lto = true
