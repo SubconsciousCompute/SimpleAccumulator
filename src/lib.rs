@@ -279,3 +279,22 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
         self.sum.get()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use num_traits::ToPrimitive;
+
+    #[test]
+    fn test_f32_to_u64() {
+        let a = 40.9f32;
+        let ai = a.to_u64().unwrap();
+        println!("{a} {ai}");
+        assert_eq!(a.floor() as u64, ai);
+
+        for _i in 0..10000 {
+            let a = rand::random::<f64>() * 100.0;
+            let ai = a.to_u64().unwrap();
+            assert_eq!(a.floor() as u64, ai, "floor or {a} is not equal to {ai}");
+        }
+    }
+}
