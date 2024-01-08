@@ -7,6 +7,10 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Adds
+
+- Adds support for computing histograms (feature 'histogram')
+
 ## [0.6.0] - 2023-12-2023
 ### Fixed
 - Fixed #10. Custom implement for `Default`.
