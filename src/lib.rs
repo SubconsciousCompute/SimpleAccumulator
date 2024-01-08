@@ -4,12 +4,11 @@
 //! ```rust
 //!     let k = [1.0, 2.0, 3.0, 4.0];
 //!
-//!     // Creates an accumulator that stores maximum of last 4 elements.
+//!     // Creates an accumulator that stores maximum of 4 most recent elements.
 //!     let mut x = simple_accumulator::SimpleAccumulator::new(&k, Some(4));
-//!
 //!     println!("{:?}", x);
-//!     x.push(5.0);
 //!
+//!     x.push(5.0);
 //!     println!("{:?}", x);
 //! ```
 
@@ -69,7 +68,8 @@ pub struct SimpleAccumulator<
     /// Measure of the tail length of the distribution
     kurtosis: Kurtosis<F>,
 
-    /// Can only `push` if used, for `pop` and `remove` we return `None`
+    /// Usually `true`. When set to `false`, all history is stored. Sometimes useful when
+    /// debugging. 
     fixed_capacity: bool,
 
     /// Histogram
@@ -299,7 +299,7 @@ mod tests {
         for _i in 0..10000 {
             let a = rand::random::<f64>() * 100.0;
             let ai = a.to_u64().unwrap();
-            assert_eq!(a.floor() as u64, ai, "floor or {a} is not equal to {ai}");
+            assert_eq!(a.floor() as u64, ai, "floor of {a} is not equal to {ai}");
         }
     }
 }
