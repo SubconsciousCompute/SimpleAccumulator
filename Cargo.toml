@@ -30,10 +30,9 @@ plotly = { version = "0.8.4" }
 float_eq = { version = "1", features = ["derive"] }
 watermill = "0.1.1"
 tracing-test = "0.2.4"
-histogram-sampler = "0.5.0"
 
 [features]
-default = ["histogram"]
+default = []
 serde = ["dep:serde"]
 histogram = ["dep:histogram"]
 
