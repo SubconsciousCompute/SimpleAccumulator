@@ -73,6 +73,7 @@ pub struct SimpleAccumulator<
     fixed_capacity: bool,
 
     /// Histogram
+    #[serde(skip)]
     #[cfg(feature = "histogram")]
     histogram: Option<Histogram>,
 }
