@@ -97,7 +97,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
             ..Default::default()
         };
 
-        for &v in slice.into_iter() {
+        for &v in slice.iter() {
             k.push(v);
         }
         k
@@ -213,10 +213,8 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
         self.kurtosis.update(y);
 
         // we just change the already held value and keep on rewriting it
-        if self.fixed_capacity {
-            if self.data.len() == self.data.capacity() {
-                self.data.pop_front();
-            }
+        if self.fixed_capacity && self.data.len() == self.data.capacity() {
+            self.data.pop_front();
         }
         self.data.push_back(y);
 

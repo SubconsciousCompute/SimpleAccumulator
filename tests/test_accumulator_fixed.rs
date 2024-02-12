@@ -67,7 +67,7 @@ fn test_only_n_recent_values() {
 
 #[test]
 fn test_sanity() {
-    let mut acc = SimpleAccumulator::with_fixed_capacity(&vec![], 3);
+    let mut acc = SimpleAccumulator::with_fixed_capacity(&[], 3);
     acc.push(1.0);
     acc.push(2.0);
     assert_float_eq!(acc.mean(), 1.5, abs_all <= 1e-4);
@@ -91,7 +91,7 @@ fn test_sanity_with_random_values() {
     use watermill::stats::Univariate;
     use watermill::variance::Variance;
 
-    let mut acc = SimpleAccumulator::with_fixed_capacity(&vec![], 10);
+    let mut acc = SimpleAccumulator::with_fixed_capacity(&[], 10);
     let mut running_median: Quantile<f64> = Quantile::new(0.5f64).unwrap();
     let mut running_var: Variance<f64> = Variance::default();
 
