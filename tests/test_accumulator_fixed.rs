@@ -79,6 +79,9 @@ fn test_sanity() {
     assert_float_eq!(acc.mean(), 2.0, abs_all <= 1e-4);
     acc.push(10.0);
     assert_float_eq!(acc.mean(), 20.0 / 6.0, abs_all <= 1e-4);
+
+    assert_float_eq!(acc.max(), 10.0, abs_all <= 1e-4);
+    assert_float_eq!(acc.min(), 1.0, abs_all <= 1e-4);
 }
 
 /// Compare with third-party implementation.

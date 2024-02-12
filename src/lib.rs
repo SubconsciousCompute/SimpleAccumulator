@@ -93,6 +93,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
         let mut k = SimpleAccumulator {
             data,
             fixed_capacity: max_size.is_some(),
+            min: Min::new(), // Min::default() will set min to 0 and not to f64::MAX
             ..Default::default()
         };
 
@@ -108,7 +109,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
     /// `grouping_power` - controls the number of buckets that are used to span consecutive powers
     /// of two. Lower values result in less memory usage since fewer buckets will be created.
     /// However, this will result in larger relative error as each bucket represents a wider range
-    /// of values.  
+    /// of values.
     ///
     /// `max_value_power` - controls the largest value which can be stored in the histogram.
     /// 2^(max_value_power) - 1 is the inclusive upper bound for the representable range of values.
@@ -219,6 +220,7 @@ impl<F: Float + FromPrimitive + AddAssign + SubAssign + std::default::Default>
         }
         self.data.push_back(y);
 
+        #[cfg(feature = "histogram")]
         if let Some(histogram) = self.histogram.as_mut() {
             if let Some(v) = y.to_u64() {
                 if let Err(e) = histogram.increment(v) {

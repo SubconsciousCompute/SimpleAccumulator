@@ -7,11 +7,12 @@ Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.7.0] - 2024-01-08
+## [0.7.0] - 2024-02-12
 
 ### Adds
 
 - Adds support for computing histograms (feature 'histogram')
+- Fixes `Min` accumulator not working.
 
 ## [0.6.0] - 2023-12-2023
 ### Fixed
